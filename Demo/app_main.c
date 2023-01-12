@@ -1,5 +1,15 @@
+/* Standard includes. */
+#include <stdio.h>
+
+/* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+
+/* STM includes. */
+#include "stm32h7xx_hal.h"
+
+extern UART_HandleTypeDef huart3;
+/*-----------------------------------------------------------*/
 
 static void prvTask( void * pvParams );
 /*-----------------------------------------------------------*/
@@ -10,6 +20,7 @@ static void prvTask( void * pvParams )
 
     for( ;; )
     {
+        fprintf( stderr, "Task is running.\r\n" );
         vTaskDelay( pdMS_TO_TICKS( 1000 ) );
     }
 }
@@ -30,6 +41,16 @@ void app_main( void )
     for( ;; )
     {
     }
+}
+/*-----------------------------------------------------------*/
+
+int _write( int file, char *ptr, int len )
+{
+    ( void ) file;
+
+    HAL_UART_Transmit( &( huart3 ), ( const uint8_t * ) ptr, ( uint16_t ) len, 1000 );
+
+    return len;
 }
 /*-----------------------------------------------------------*/
 

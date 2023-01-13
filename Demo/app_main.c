@@ -8,39 +8,177 @@
 /* STM includes. */
 #include "stm32h7xx_hal.h"
 
+/* FreeRTOS+TCP includes. */
+#include "FreeRTOS_Sockets.h"
+#include "FreeRTOS_IP.h"
+
+/* TCP Demo definitions*/
+#define mainTCP_SERVER_STACK_SIZE            640
+/*-----------------------------------------------------------*/
+
 extern UART_HandleTypeDef huart3;
+
+const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_ADDR2, configMAC_ADDR3, configMAC_ADDR4, configMAC_ADDR5 };
+
+static BaseType_t xTasksAlreadyCreated = pdFALSE;
+
+RNG_HandleTypeDef hrng;
 /*-----------------------------------------------------------*/
 
-static void prvTask( void * pvParams );
-/*-----------------------------------------------------------*/
+static void prvServerWorkTask( void * pvParameters );
 
-static void prvTask( void * pvParams )
-{
-    ( void ) pvParams;
-
-    for( ;; )
-    {
-        fprintf( stderr, "Task is running.\r\n" );
-        vTaskDelay( pdMS_TO_TICKS( 1000 ) );
-    }
-}
+static void prvStartRandomNumberGenerator( void );
 /*-----------------------------------------------------------*/
 
 void app_main( void )
 {
-    xTaskCreate( prvTask,
-                 "task",
-                 configMINIMAL_STACK_SIZE,
-                 NULL,
-                 tskIDLE_PRIORITY,
-                 NULL );
+    prvStartRandomNumberGenerator();
 
+    const uint8_t ucIPAddress[ 4 ] = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 };
+    const uint8_t ucNetMask[ 4 ] = { configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3 };
+    const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
+    const uint8_t ucDNSServerAddress[ 4 ] = { configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3 };
+
+    configPRINTF( "Calling FreeRTOS_IPInit\n" );
+
+    FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
+
+    /* Start the RTOS scheduler. */
     vTaskStartScheduler();
 
-    /* Should not reach here. */
+    /* Infinite loop */
+    for(;;)
+    {
+    }
+}
+/*-----------------------------------------------------------*/
+
+static void prvServerWorkTask( void *pvParameters )
+{
+    ( void ) pvParameters;
+
     for( ;; )
     {
     }
+}
+/*-----------------------------------------------------------*/
+
+uint32_t ulApplicationGetNextSequenceNumber( uint32_t ulSourceAddress,
+                                             uint16_t usSourcePort,
+                                             uint32_t ulDestinationAddress,
+                                             uint16_t usDestinationPort )
+{
+    uint32_t ulReturn;
+
+    ( void ) ulSourceAddress;
+    ( void ) usSourcePort;
+    ( void ) ulDestinationAddress;
+    ( void ) usDestinationPort;
+
+    xApplicationGetRandomNumber( &ulReturn );
+
+    return ulReturn;
+}
+/*-----------------------------------------------------------*/
+
+static void prvStartRandomNumberGenerator( void )
+{
+    /* Enable the clock for the RNG. */
+    __HAL_RCC_RNG_CLK_ENABLE();
+    RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
+    RNG->CR |= RNG_CR_RNGEN;
+
+    hrng.Instance = RNG;
+    hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
+    if (HAL_RNG_Init(&hrng) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /* Get random numbers. */
+    HAL_RNG_GenerateRandomNumber( &hrng, &ulSeed );
+}
+/*-----------------------------------------------------------*/
+
+void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
+{
+    /* If the network has just come up...*/
+    if( eNetworkEvent == eNetworkUp )
+    {
+    uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
+    char cBuffer[ 16 ];
+
+        /* Create the tasks that use the IP stack if they have not already been
+         * created. */
+        if( xTasksAlreadyCreated == pdFALSE )
+        {
+            xTasksAlreadyCreated = pdTRUE;
+
+            /* Sockets, and tasks that use the TCP/IP stack can be created here. */
+            xTaskCreate( prvServerWorkTask,
+                         "SvrWork",
+                         mainTCP_SERVER_STACK_SIZE,
+                         NULL,
+                         tskIDLE_PRIORITY + 1,
+                         NULL );
+        }
+
+        /* Print out the network configuration, which may have come from a DHCP
+         * server. */
+        FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
+        FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
+        configPRINTF( "IP Address: %s\n", cBuffer );
+
+        FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
+        configPRINTF( "Subnet Mask: %s\n", cBuffer );
+
+        FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
+        configPRINTF( "Gateway Address: %s\n", cBuffer );
+
+        FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
+        configPRINTF( "DNS Server Address: %s\n", cBuffer );
+    }
+}
+/*-----------------------------------------------------------*/
+
+BaseType_t xApplicationDNSQueryHook( const char *pcName )
+{
+    BaseType_t xReturn = pdFAIL;
+
+    /* Determine if a name lookup is for this node.  Two names are given
+     * to this node: that returned by pcApplicationHostnameHook() and that set
+     * by mainDEVICE_NICK_NAME. */
+    if( strcasecmp( pcName, pcApplicationHostnameHook() ) == 0 )
+    {
+        xReturn = pdPASS;
+    }
+    return xReturn;
+}
+/*-----------------------------------------------------------*/
+
+const char *pcApplicationHostnameHook( void )
+{
+    /* Assign the name "STM32H7" to this network node.  This function will be
+     * called during the DHCP: the machine will be registered with an IP address
+     * plus this name. */
+    return "STM32H7";
+}
+/*-----------------------------------------------------------*/
+
+BaseType_t xApplicationGetRandomNumber( uint32_t *pulValue )
+{
+BaseType_t xReturn;
+
+    if( HAL_RNG_GenerateRandomNumber( &hrng, pulValue ) == HAL_OK )
+    {
+        xReturn = pdPASS;
+    }
+    else
+    {
+        xReturn = pdFAIL;
+    }
+
+    return xReturn;
 }
 /*-----------------------------------------------------------*/
 

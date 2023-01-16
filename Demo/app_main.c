@@ -15,9 +15,10 @@
 /* Logging includes. */
 #include "logging.h"
 
-/* TCP Demo definitions*/
-#define mainTCP_SERVER_STACK_SIZE            640
-#define mainTCP_SERVER_TASK_PRIORITY         tskIDLE_PRIORITY
+/* Demo definitions. */
+#define mainUDP_SERVER_STACK_SIZE            512
+#define mainUDP_SERVER_TASK_PRIORITY         tskIDLE_PRIORITY
+#define mainUDP_SERVER_PORT                  1234
 
 /* Logging module configuration. */
 #define mainLOGGING_TASK_STACK_SIZE         256
@@ -34,7 +35,7 @@ static BaseType_t xTasksAlreadyCreated = pdFALSE;
 extern RNG_HandleTypeDef hrng;
 /*-----------------------------------------------------------*/
 
-static void prvServerWorkTask( void * pvParameters );
+static void prvServerTask( void * pvParameters );
 
 static void prvConfigureMPU( void );
 /*-----------------------------------------------------------*/
@@ -67,12 +68,62 @@ void app_main( void )
 }
 /*-----------------------------------------------------------*/
 
-static void prvServerWorkTask( void *pvParameters )
+static void prvServerTask( void *pvParameters )
 {
+    char  pcBuffer[ 92 ];
+    BaseType_t xCount;
+    Socket_t xUDPServerSocket = FREERTOS_INVALID_SOCKET;
+    struct freertos_sockaddr xSourceAddress, xServerAddress;
+    socklen_t xSourceAddressLength = sizeof( xSourceAddress );
+    TickType_t xServerRecvTimeout = portMAX_DELAY;
+
     ( void ) pvParameters;
+
+    xUDPServerSocket = FreeRTOS_socket( FREERTOS_AF_INET,
+                                        FREERTOS_SOCK_DGRAM,
+                                        FREERTOS_IPPROTO_UDP );
+    configASSERT( xUDPServerSocket != FREERTOS_INVALID_SOCKET );
+
+    /* No need to return from FreeRTOS_recvfrom until a message
+     * is received. */
+    FreeRTOS_setsockopt( xUDPServerSocket,
+                         0,
+                         FREERTOS_SO_RCVTIMEO,
+                         &( xServerRecvTimeout ),
+                         sizeof( TickType_t ) );
+
+    xServerAddress.sin_port = FreeRTOS_htons( mainUDP_SERVER_PORT );
+    xServerAddress.sin_addr = FreeRTOS_GetIPAddress();
+    FreeRTOS_bind( xUDPServerSocket, &( xServerAddress ), sizeof( xServerAddress ) );
+
+    configPRINTF( ( "Waiting for requests...\n" ) );
 
     for( ;; )
     {
+        xCount = FreeRTOS_recvfrom( xUDPServerSocket,
+                                    ( void * ) pcBuffer,
+                                    sizeof( pcBuffer ) - 1,
+                                    0,
+                                    &( xSourceAddress ),
+                                    &( xSourceAddressLength ) );
+
+        /* Since we set the receive timeout to portMAX_DELAY, the
+         * above call should only return when a message is received. */
+        configASSERT( xCount > 0 );
+
+        pcBuffer[ xCount ] = '\0';
+
+        configPRINTF( ( "Received message. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_addr,
+                                                                        xSourceAddress.sin_port,
+                                                                        pcBuffer ) );
+
+        /* Echo the same message back. */
+        FreeRTOS_sendto( xUDPServerSocket,
+                        ( void * ) pcBuffer,
+                        xCount + 1, /* Include the terminating null byte we added. */
+                        0,
+                        &( xSourceAddress ),
+                        xSourceAddressLength );
     }
 }
 /*-----------------------------------------------------------*/
@@ -136,11 +187,11 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
             xTasksAlreadyCreated = pdTRUE;
 
             /* Sockets, and tasks that use the TCP/IP stack can be created here. */
-            xTaskCreate( prvServerWorkTask,
-                         "SvrWork",
-                         mainTCP_SERVER_STACK_SIZE,
+            xTaskCreate( prvServerTask,
+                         "Server",
+                         mainUDP_SERVER_STACK_SIZE,
                          NULL,
-                         mainTCP_SERVER_TASK_PRIORITY,
+                         mainUDP_SERVER_TASK_PRIORITY,
                          NULL );
         }
 

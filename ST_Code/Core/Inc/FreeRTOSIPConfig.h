@@ -372,40 +372,6 @@ messages. */
 
 #define ipconfigETHERNET_DRIVER_FILTERS_PACKETS         ( 1 )
 
-/* If set to 1 then each message sent via the UDP logging facility will end
-with \r\n.  If set to 0 then each message sent via the UDP logging facility will
-end with \n. */
-#define configUDP_LOGGING_NEEDS_CR_LF                   ( 0 )
-
-/* Sets the maximum length for a string sent via the UDP logging facility. */
-#define configUDP_LOGGING_STRING_LENGTH                 ( 200 )
-
-/* The UDP logging facility buffers messages until the UDP logging task is able
-to transmit them.  configUDP_LOGGING_MAX_MESSAGES_IN_BUFFER sets the maximum
-number of messages that can be buffered at any one time. */
-#define    configUDP_LOGGING_MAX_MESSAGES_IN_BUFFER     ( 20 )
-
-/* The UDP logging facility creates a task to send buffered messages to the UDP
-port.  configUDP_LOGGING_TASK_STACK_SIZE sets the task's stack size. */
-#define    configUDP_LOGGING_TASK_STACK_SIZE            ( 512 )
-
-/* The UDP logging facility creates a task to send buffered messages to the UDP
-port.  configUDP_LOGGING_TASK_PRIORITY sets the task's priority.  It is
-suggested to give the task a low priority to ensure it does not adversely effect
-the performance of other TCP/IP stack activity. */
-#define configUDP_LOGGING_TASK_PRIORITY                 ( tskIDLE_PRIORITY  + 2 )
-
-/* The UDP port to which the UDP logging facility sends messages. */
-#define configUDP_LOGGING_PORT_REMOTE                   2403
-
-/* The local UDP port to which commands can be sent. */
-#define configUDP_LOGGING_PORT_LOCAL                    2402
-
-//#define configUDP_LOGGING_ADDR0            192
-//#define configUDP_LOGGING_ADDR1            168
-//#define configUDP_LOGGING_ADDR2            2
-//#define configUDP_LOGGING_ADDR3            5
-
 #define ipconfigSOCKET_HAS_USER_SEMAPHORE               1
 
 #define ipconfigTCP_MEM_STATS_MAX_ALLOCATION            64

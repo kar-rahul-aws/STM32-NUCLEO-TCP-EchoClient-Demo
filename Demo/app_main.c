@@ -36,6 +36,7 @@ extern RNG_HandleTypeDef hrng;
 
 static void prvServerWorkTask( void * pvParameters );
 
+static void prvConfigureMPU( void );
 /*-----------------------------------------------------------*/
 
 void app_main( void )
@@ -45,6 +46,8 @@ void app_main( void )
     const uint8_t ucNetMask[ 4 ] = { configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3 };
     const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
     const uint8_t ucDNSServerAddress[ 4 ] = { configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3 };
+
+    prvConfigureMPU();
 
     xRet = xLoggingTaskInitialize( mainLOGGING_TASK_STACK_SIZE,
                                    mainLOGGING_TASK_PRIORITY,
@@ -71,6 +74,32 @@ static void prvServerWorkTask( void *pvParameters )
     for( ;; )
     {
     }
+}
+/*-----------------------------------------------------------*/
+
+static void prvConfigureMPU( void )
+{
+    MPU_Region_InitTypeDef MPU_InitStruct;
+
+    HAL_MPU_Disable();
+
+    /*  Configure the MPU attributes of RAM_D2 ( which contains .ethernet_data )
+     * as Write back, Read allocate, Write allocate. */
+    MPU_InitStruct.Enable           = MPU_REGION_ENABLE;
+    MPU_InitStruct.BaseAddress      = 0x30000000;
+    MPU_InitStruct.Size             = MPU_REGION_SIZE_256KB;
+    MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+    MPU_InitStruct.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
+    MPU_InitStruct.IsCacheable      = MPU_ACCESS_NOT_CACHEABLE;
+    MPU_InitStruct.IsShareable      = MPU_ACCESS_SHAREABLE;
+    MPU_InitStruct.Number           = MPU_REGION_NUMBER0;
+    MPU_InitStruct.TypeExtField     = MPU_TEX_LEVEL1;
+    MPU_InitStruct.SubRegionDisable = 0x00;
+    MPU_InitStruct.DisableExec      = MPU_INSTRUCTION_ACCESS_ENABLE;
+
+    HAL_MPU_ConfigRegion( &( MPU_InitStruct ) );
+
+    HAL_MPU_Enable( MPU_PRIVILEGED_DEFAULT );
 }
 /*-----------------------------------------------------------*/
 

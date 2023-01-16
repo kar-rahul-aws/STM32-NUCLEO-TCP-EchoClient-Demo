@@ -14,6 +14,7 @@
 
 /* TCP Demo definitions*/
 #define mainTCP_SERVER_STACK_SIZE            640
+#define mainTCP_SERVER_TASK_PRIORITY         tskIDLE_PRIORITY
 /*-----------------------------------------------------------*/
 
 extern UART_HandleTypeDef huart3;
@@ -39,7 +40,7 @@ void app_main( void )
     const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
     const uint8_t ucDNSServerAddress[ 4 ] = { configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3 };
 
-    configPRINTF( "Calling FreeRTOS_IPInit\n" );
+    configPRINTF( ( "Calling FreeRTOS_IPInit\n" ) );
 
     FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
 
@@ -119,7 +120,7 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
                          "SvrWork",
                          mainTCP_SERVER_STACK_SIZE,
                          NULL,
-                         tskIDLE_PRIORITY + 1,
+                         mainTCP_SERVER_TASK_PRIORITY,
                          NULL );
         }
 
@@ -127,16 +128,16 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
          * server. */
         FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
         FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
-        configPRINTF( "IP Address: %s\n", cBuffer );
+        configPRINTF( ( "IP Address: %s\n", cBuffer ) );
 
         FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
-        configPRINTF( "Subnet Mask: %s\n", cBuffer );
+        configPRINTF( ( "Subnet Mask: %s\n", cBuffer ) );
 
         FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
-        configPRINTF( "Gateway Address: %s\n", cBuffer );
+        configPRINTF( ( "Gateway Address: %s\n", cBuffer ) );
 
         FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
-        configPRINTF( "DNS Server Address: %s\n", cBuffer );
+        configPRINTF( ( "DNS Server Address: %s\n", cBuffer ) );
     }
 }
 /*-----------------------------------------------------------*/

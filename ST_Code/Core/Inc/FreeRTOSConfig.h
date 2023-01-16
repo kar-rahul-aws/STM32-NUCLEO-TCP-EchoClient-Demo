@@ -220,6 +220,6 @@ http://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/examples_FreeRTOS_simula
 #define configECHO_SERVER_ADDR2 	2
 #define configECHO_SERVER_ADDR3 	3
 
-#define configPRINTF( x ) prtinf x
+#define configPRINTF( x ) printf x
 
 #endif /* FREERTOS_CONFIG_H */

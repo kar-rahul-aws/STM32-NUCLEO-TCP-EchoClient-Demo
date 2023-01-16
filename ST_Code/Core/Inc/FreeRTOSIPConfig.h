@@ -244,7 +244,7 @@ generate replies to incoming ICMP echo (ping) requests. */
 
 /* If ipconfigSUPPORT_OUTGOING_PINGS is set to 1 then the
 FreeRTOS_SendPingRequest() API function is available. */
-#define ipconfigSUPPORT_OUTGOING_PINGS				1
+#define ipconfigSUPPORT_OUTGOING_PINGS				0
 
 /* If ipconfigSUPPORT_SELECT_FUNCTION is set to 1 then the FreeRTOS_select()
 (and associated) API function is available. */
@@ -316,7 +316,7 @@ extern int lUDPLoggingPrintf( const char *pcFormatString, ... );
 1 then FreeRTOS_debug_printf should be defined to the function used to print
 out the debugging messages. */
 #ifndef ipconfigHAS_DEBUG_PRINTF
-	#define ipconfigHAS_DEBUG_PRINTF	1
+	#define ipconfigHAS_DEBUG_PRINTF	0
 #endif
 
 #if( ipconfigHAS_DEBUG_PRINTF == 1 )
@@ -328,7 +328,7 @@ FreeRTOS_netstat() command, and ping replies.  If ipconfigHAS_PRINTF is set to 1
 then FreeRTOS_printf should be set to the function used to print out the
 messages. */
 #ifndef ipconfigHAS_PRINTF
-	#define ipconfigHAS_PRINTF			1
+	#define ipconfigHAS_PRINTF			0
 #endif
 
 #if( ipconfigHAS_PRINTF == 1 )

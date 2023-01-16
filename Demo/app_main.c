@@ -23,18 +23,15 @@ const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_
 
 static BaseType_t xTasksAlreadyCreated = pdFALSE;
 
-RNG_HandleTypeDef hrng;
+extern RNG_HandleTypeDef hrng;
 /*-----------------------------------------------------------*/
 
 static void prvServerWorkTask( void * pvParameters );
 
-static void prvStartRandomNumberGenerator( void );
 /*-----------------------------------------------------------*/
 
 void app_main( void )
 {
-    prvStartRandomNumberGenerator();
-
     const uint8_t ucIPAddress[ 4 ] = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 };
     const uint8_t ucNetMask[ 4 ] = { configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3 };
     const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
@@ -79,25 +76,6 @@ uint32_t ulApplicationGetNextSequenceNumber( uint32_t ulSourceAddress,
     xApplicationGetRandomNumber( &ulReturn );
 
     return ulReturn;
-}
-/*-----------------------------------------------------------*/
-
-static void prvStartRandomNumberGenerator( void )
-{
-    /* Enable the clock for the RNG. */
-    __HAL_RCC_RNG_CLK_ENABLE();
-    RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
-    RNG->CR |= RNG_CR_RNGEN;
-
-    hrng.Instance = RNG;
-    hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
-    if (HAL_RNG_Init(&hrng) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* Get random numbers. */
-    HAL_RNG_GenerateRandomNumber( &hrng, &ulSeed );
 }
 /*-----------------------------------------------------------*/
 

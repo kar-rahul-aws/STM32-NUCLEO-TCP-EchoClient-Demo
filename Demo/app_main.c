@@ -12,9 +12,17 @@
 #include "FreeRTOS_Sockets.h"
 #include "FreeRTOS_IP.h"
 
+/* Logging includes. */
+#include "logging.h"
+
 /* TCP Demo definitions*/
 #define mainTCP_SERVER_STACK_SIZE            640
 #define mainTCP_SERVER_TASK_PRIORITY         tskIDLE_PRIORITY
+
+/* Logging module configuration. */
+#define mainLOGGING_TASK_STACK_SIZE         256
+#define mainLOGGING_TASK_PRIORITY           tskIDLE_PRIORITY
+#define mainLOGGING_QUEUE_LENGTH            10
 /*-----------------------------------------------------------*/
 
 extern UART_HandleTypeDef huart3;
@@ -32,13 +40,18 @@ static void prvServerWorkTask( void * pvParameters );
 
 void app_main( void )
 {
+    BaseType_t xRet;
     const uint8_t ucIPAddress[ 4 ] = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 };
     const uint8_t ucNetMask[ 4 ] = { configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3 };
     const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
     const uint8_t ucDNSServerAddress[ 4 ] = { configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3 };
 
-    configPRINTF( ( "Calling FreeRTOS_IPInit\n" ) );
+    xRet = xLoggingTaskInitialize( mainLOGGING_TASK_STACK_SIZE,
+                                   mainLOGGING_TASK_PRIORITY,
+                                   mainLOGGING_QUEUE_LENGTH );
+    configASSERT( xRet == pdPASS );
 
+    configPRINTF( ( "Calling FreeRTOS_IPInit...\n" ) );
     FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
 
     /* Start the RTOS scheduler. */
@@ -161,13 +174,9 @@ BaseType_t xReturn;
 }
 /*-----------------------------------------------------------*/
 
-int _write( int file, char *ptr, int len )
+void vPrintStringToUart( const char *str )
 {
-    ( void ) file;
-
-    HAL_UART_Transmit( &( huart3 ), ( const uint8_t * ) ptr, ( uint16_t ) len, 1000 );
-
-    return len;
+    HAL_UART_Transmit( &( huart3 ), ( const uint8_t * )str, strlen( str ), 1000 );
 }
 /*-----------------------------------------------------------*/
 

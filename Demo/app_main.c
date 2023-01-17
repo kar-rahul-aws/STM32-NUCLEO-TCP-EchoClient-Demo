@@ -21,16 +21,11 @@
 /* Demo definitions. */
 #define mainCLI_TASK_STACK_SIZE             512
 #define mainCLI_TASK_PRIORITY               tskIDLE_PRIORITY
-#define mainCLI_SERVER_PORT                 1234
 
 /* Logging module configuration. */
 #define mainLOGGING_TASK_STACK_SIZE         256
 #define mainLOGGING_TASK_PRIORITY           tskIDLE_PRIORITY
 #define mainLOGGING_QUEUE_LENGTH            10
-
-/* CLI Definitions. */
-#define mainMAX_COMMAND_INPUT_SIZE          60
-#define mainMAX_COMMAND_OUTPUT_SIZE         1024
 /*-----------------------------------------------------------*/
 
 extern UART_HandleTypeDef huart3;
@@ -41,8 +36,7 @@ static BaseType_t xTasksAlreadyCreated = pdFALSE;
 
 extern RNG_HandleTypeDef hrng;
 
-static char cInputCommandString[ mainMAX_COMMAND_INPUT_SIZE + 1 ];
-static char cOutputResponseString[ mainMAX_COMMAND_OUTPUT_SIZE + 1 ];
+static char cInputCommandString[ configMAX_COMMAND_INPUT_SIZE + 1 ];
 /*-----------------------------------------------------------*/
 
 static void prvCliTask( void * pvParameters );
@@ -92,7 +86,7 @@ static void prvCliTask( void *pvParameters )
     struct freertos_sockaddr xSourceAddress, xServerAddress;
     socklen_t xSourceAddressLength = sizeof( xSourceAddress );
     TickType_t xCLIServerRecvTimeout = portMAX_DELAY;
-
+    char * pcOutputBuffer = FreeRTOS_CLIGetOutputBuffer();
 
     ( void ) pvParameters;
 
@@ -109,7 +103,7 @@ static void prvCliTask( void *pvParameters )
                          &( xCLIServerRecvTimeout ),
                          sizeof( TickType_t ) );
 
-    xServerAddress.sin_port = FreeRTOS_htons( mainCLI_SERVER_PORT );
+    xServerAddress.sin_port = FreeRTOS_htons( configCLI_SERVER_PORT );
     xServerAddress.sin_addr = FreeRTOS_GetIPAddress();
     FreeRTOS_bind( xCLIServerSocket, &( xServerAddress ), sizeof( xServerAddress ) );
 
@@ -119,7 +113,7 @@ static void prvCliTask( void *pvParameters )
     {
         xCount = FreeRTOS_recvfrom( xCLIServerSocket,
                                     ( void * )( &( cInputCommandString[ 0 ] ) ),
-                                    mainMAX_COMMAND_INPUT_SIZE,
+                                    configMAX_COMMAND_INPUT_SIZE,
                                     0,
                                     &( xSourceAddress ),
                                     &( xSourceAddressLength ) );
@@ -138,17 +132,17 @@ static void prvCliTask( void *pvParameters )
         {
             /* Send the received command to the FreeRTOS+CLI. */
             xResponseRemaining = FreeRTOS_CLIProcessCommand( cInputCommandString,
-                                                             cOutputResponseString,
-                                                             mainMAX_COMMAND_OUTPUT_SIZE );
+                                                             pcOutputBuffer,
+                                                             configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 );
 
             /* Ensure null termination so that the strlen below does not
              * end up reading past bounds. */
-            cOutputResponseString[ mainMAX_COMMAND_OUTPUT_SIZE ] = '\0';
+            pcOutputBuffer[ configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 ] = '\0';
 
             /* Send the command response. */
             lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
-                                          ( void * ) cOutputResponseString,
-                                          strlen( cOutputResponseString ),
+                                          ( void * ) pcOutputBuffer,
+                                          strlen( pcOutputBuffer ),
                                           0,
                                           &( xSourceAddress ),
                                           xSourceAddressLength );
@@ -163,8 +157,10 @@ static void prvCliTask( void *pvParameters )
 static void prvRegisterCLICommands( void )
 {
 extern void vRegisterPingCommand( void );
+extern void vRegisterPcapCommands( void );
 
     vRegisterPingCommand();
+    vRegisterPcapCommands();
 }
 /*-----------------------------------------------------------*/
 

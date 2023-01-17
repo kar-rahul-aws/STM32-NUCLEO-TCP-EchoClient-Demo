@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
@@ -14,17 +15,38 @@
 #include "pcap_capture.h"
 
 /**
- * @brief Interpreter that handles the pcap_start command.
+ * @brief Interpreter that handles the pcap command.
  */
-static portBASE_TYPE prvPcapStartCommandInterpreter( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+static portBASE_TYPE prvPcapCommandInterpreter( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
 {
-    ( void ) pcCommandString;
+    const char * pcCommandParameter;
+    BaseType_t xCommandParameterLength;
 
     configASSERT( pcWriteBuffer );
 
-    pcap_capture_start();
+    pcCommandParameter = FreeRTOS_CLIGetParameter( pcCommandString, 1, &( xCommandParameterLength ) );
 
-    snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
+    if( pcCommandParameter != NULL )
+    {
+        if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
+        {
+            pcap_capture_start();
+            snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
+        }
+        else if( strncmp( pcCommandParameter, "stop", xCommandParameterLength ) == 0 )
+        {
+            pcap_capture_stop();
+            snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
+        }
+        else
+        {
+            snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "Bad Command." );
+        }
+    }
+    else
+    {
+        snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "Bad Command." );
+    }
 
     /* Return pdFALSE to indicate that the response is complete. */
     return pdFALSE;
@@ -33,54 +55,21 @@ static portBASE_TYPE prvPcapStartCommandInterpreter( char *pcWriteBuffer, size_t
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Interpreter that handles the pcap_stop command.
+ * @brief Structure that defines the "pcap" command line command.
  */
-static portBASE_TYPE prvPcapStopCommandInterpreter( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+static const CLI_Command_Definition_t xPcapCommand =
 {
-    ( void ) pcCommandString;
-
-    configASSERT( pcWriteBuffer );
-
-    pcap_capture_stop();
-
-    snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
-
-    /* Return pdFALSE to indicate that the response is complete. */
-    return pdFALSE;
-}
-
-/*-----------------------------------------------------------*/
-
-/**
- * @brief Structure that defines the "pcap_start" command line command.
- */
-static const CLI_Command_Definition_t xPcapStartCommand =
-{
-    ( const char * const ) "pcap_start", /* The command string to type. */
-    ( const char * const ) "pcap_start: Starts the packet capture. Returns OK.\r\n",
-    prvPcapStartCommandInterpreter, /* The interpreter function for the command. */
-    0 /* No parameters are expected. */
+    ( const char * const ) "pcap", /* The command string to type. */
+    ( const char * const ) "pcap: Starts, stops and gets the packet capture according to the parameter - start/stop/get.\r\n",
+    prvPcapCommandInterpreter, /* The interpreter function for the command. */
+    1 /* One parameter - start, stop or get. */
 };
 
 /*-----------------------------------------------------------*/
 
-/**
- * @brief Structure that defines the "pcap_stop" command line command.
- */
-static const CLI_Command_Definition_t xPcapStopCommand =
+void vRegisterPcapCommand( void )
 {
-    ( const char * const ) "pcap_stop", /* The command string to type. */
-    ( const char * const ) "pcap_stop: Stops the packet capture. Returns OK.\r\n",
-    prvPcapStopCommandInterpreter, /* The interpreter function for the command. */
-    0 /* No parameters are expected. */
-};
-
-/*-----------------------------------------------------------*/
-
-void vRegisterPcapCommands( void )
-{
-    FreeRTOS_CLIRegisterCommand( &( xPcapStartCommand ) );
-    FreeRTOS_CLIRegisterCommand( &( xPcapStopCommand ) );
+    FreeRTOS_CLIRegisterCommand( &( xPcapCommand ) );
 }
 
 /*-----------------------------------------------------------*/

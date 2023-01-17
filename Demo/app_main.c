@@ -157,10 +157,10 @@ static void prvCliTask( void *pvParameters )
 static void prvRegisterCLICommands( void )
 {
 extern void vRegisterPingCommand( void );
-extern void vRegisterPcapCommands( void );
+extern void vRegisterPcapCommand( void );
 
     vRegisterPingCommand();
-    vRegisterPcapCommands();
+    vRegisterPcapCommand();
 }
 /*-----------------------------------------------------------*/
 

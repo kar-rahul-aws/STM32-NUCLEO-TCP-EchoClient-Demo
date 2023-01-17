@@ -15,6 +15,10 @@
 /* Logging includes. */
 #include "logging.h"
 
+/*CLI includes*/
+#include "FreeRTOS_CLI.h"
+
+
 /* Demo definitions. */
 #define mainUDP_SERVER_STACK_SIZE            512
 #define mainUDP_SERVER_TASK_PRIORITY         tskIDLE_PRIORITY
@@ -24,6 +28,11 @@
 #define mainLOGGING_TASK_STACK_SIZE         256
 #define mainLOGGING_TASK_PRIORITY           tskIDLE_PRIORITY
 #define mainLOGGING_QUEUE_LENGTH            10
+
+
+/* CLI Definitions*/
+#define cmdMAX_INPUT_SIZE					60
+#define cmdMAX_OUTPUT_SIZE					1024
 /*-----------------------------------------------------------*/
 
 extern UART_HandleTypeDef huart3;
@@ -38,6 +47,8 @@ extern RNG_HandleTypeDef hrng;
 static void prvServerTask( void * pvParameters );
 
 static void prvConfigureMPU( void );
+
+void vRegisterCLICommands( void );
 /*-----------------------------------------------------------*/
 
 void app_main( void )
@@ -49,6 +60,9 @@ void app_main( void )
     const uint8_t ucDNSServerAddress[ 4 ] = { configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3 };
 
     prvConfigureMPU();
+
+    /* Register commands with the FreeRTOS+CLI command interpreter. */
+    vRegisterCLICommands();
 
     xRet = xLoggingTaskInitialize( mainLOGGING_TASK_STACK_SIZE,
                                    mainLOGGING_TASK_PRIORITY,
@@ -70,12 +84,13 @@ void app_main( void )
 
 static void prvServerTask( void *pvParameters )
 {
-    char  pcBuffer[ 92 ];
+    char  pcBuffer[ cmdMAX_OUTPUT_SIZE ], cOutputString[ cmdMAX_OUTPUT_SIZE ];
     BaseType_t xCount;
     Socket_t xUDPServerSocket = FREERTOS_INVALID_SOCKET;
     struct freertos_sockaddr xSourceAddress, xServerAddress;
     socklen_t xSourceAddressLength = sizeof( xSourceAddress );
     TickType_t xServerRecvTimeout = portMAX_DELAY;
+
 
     ( void ) pvParameters;
 
@@ -116,10 +131,12 @@ static void prvServerTask( void *pvParameters )
         configPRINTF( ( "Received message. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_addr,
                                                                         xSourceAddress.sin_port,
                                                                         pcBuffer ) );
+        /*Send the buffer to the CLI*/
+        FreeRTOS_CLIProcessCommand( pcBuffer, cOutputString, cmdMAX_OUTPUT_SIZE );
 
         /* Echo the same message back. */
         FreeRTOS_sendto( xUDPServerSocket,
-                        ( void * ) pcBuffer,
+                        ( void * ) cOutputString,
                         xCount + 1, /* Include the terminating null byte we added. */
                         0,
                         &( xSourceAddress ),

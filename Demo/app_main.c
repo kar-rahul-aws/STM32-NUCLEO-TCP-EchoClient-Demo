@@ -18,21 +18,19 @@
 /*CLI includes*/
 #include "FreeRTOS_CLI.h"
 
-
 /* Demo definitions. */
-#define mainUDP_SERVER_STACK_SIZE            512
-#define mainUDP_SERVER_TASK_PRIORITY         tskIDLE_PRIORITY
-#define mainUDP_SERVER_PORT                  1234
+#define mainCLI_TASK_STACK_SIZE             512
+#define mainCLI_TASK_PRIORITY               tskIDLE_PRIORITY
+#define mainCLI_SERVER_PORT                 1234
 
 /* Logging module configuration. */
 #define mainLOGGING_TASK_STACK_SIZE         256
 #define mainLOGGING_TASK_PRIORITY           tskIDLE_PRIORITY
 #define mainLOGGING_QUEUE_LENGTH            10
 
-
-/* CLI Definitions*/
-#define cmdMAX_INPUT_SIZE					60
-#define cmdMAX_OUTPUT_SIZE					1024
+/* CLI Definitions. */
+#define mainMAX_COMMAND_INPUT_SIZE          60
+#define mainMAX_COMMAND_OUTPUT_SIZE         1024
 /*-----------------------------------------------------------*/
 
 extern UART_HandleTypeDef huart3;
@@ -42,13 +40,16 @@ const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_
 static BaseType_t xTasksAlreadyCreated = pdFALSE;
 
 extern RNG_HandleTypeDef hrng;
+
+static char cInputCommandString[ mainMAX_COMMAND_INPUT_SIZE + 1 ];
+static char cOutputResponseString[ mainMAX_COMMAND_OUTPUT_SIZE + 1 ];
 /*-----------------------------------------------------------*/
 
-static void prvServerTask( void * pvParameters );
+static void prvCliTask( void * pvParameters );
 
 static void prvConfigureMPU( void );
 
-void vRegisterCLICommands( void );
+static void prvRegisterCLICommands( void );
 /*-----------------------------------------------------------*/
 
 void app_main( void )
@@ -61,8 +62,9 @@ void app_main( void )
 
     prvConfigureMPU();
 
-    /* Register commands with the FreeRTOS+CLI command interpreter. */
-    vRegisterCLICommands();
+    /* Register all the commands with the FreeRTOS+CLI command
+     * interpreter. */
+    prvRegisterCLICommands();
 
     xRet = xLoggingTaskInitialize( mainLOGGING_TASK_STACK_SIZE,
                                    mainLOGGING_TASK_PRIORITY,
@@ -82,66 +84,87 @@ void app_main( void )
 }
 /*-----------------------------------------------------------*/
 
-static void prvServerTask( void *pvParameters )
+static void prvCliTask( void *pvParameters )
 {
-    char  pcBuffer[ cmdMAX_OUTPUT_SIZE ], cOutputString[ cmdMAX_OUTPUT_SIZE ];
-    BaseType_t xCount;
-    Socket_t xUDPServerSocket = FREERTOS_INVALID_SOCKET;
+    int32_t lBytesSent;
+    BaseType_t xCount, xResponseRemaining;
+    Socket_t xCLIServerSocket = FREERTOS_INVALID_SOCKET;
     struct freertos_sockaddr xSourceAddress, xServerAddress;
     socklen_t xSourceAddressLength = sizeof( xSourceAddress );
-    TickType_t xServerRecvTimeout = portMAX_DELAY;
+    TickType_t xCLIServerRecvTimeout = portMAX_DELAY;
 
 
     ( void ) pvParameters;
 
-    xUDPServerSocket = FreeRTOS_socket( FREERTOS_AF_INET,
+    xCLIServerSocket = FreeRTOS_socket( FREERTOS_AF_INET,
                                         FREERTOS_SOCK_DGRAM,
                                         FREERTOS_IPPROTO_UDP );
-    configASSERT( xUDPServerSocket != FREERTOS_INVALID_SOCKET );
+    configASSERT( xCLIServerSocket != FREERTOS_INVALID_SOCKET );
 
     /* No need to return from FreeRTOS_recvfrom until a message
      * is received. */
-    FreeRTOS_setsockopt( xUDPServerSocket,
+    FreeRTOS_setsockopt( xCLIServerSocket,
                          0,
                          FREERTOS_SO_RCVTIMEO,
-                         &( xServerRecvTimeout ),
+                         &( xCLIServerRecvTimeout ),
                          sizeof( TickType_t ) );
 
-    xServerAddress.sin_port = FreeRTOS_htons( mainUDP_SERVER_PORT );
+    xServerAddress.sin_port = FreeRTOS_htons( mainCLI_SERVER_PORT );
     xServerAddress.sin_addr = FreeRTOS_GetIPAddress();
-    FreeRTOS_bind( xUDPServerSocket, &( xServerAddress ), sizeof( xServerAddress ) );
+    FreeRTOS_bind( xCLIServerSocket, &( xServerAddress ), sizeof( xServerAddress ) );
 
     configPRINTF( ( "Waiting for requests...\n" ) );
 
     for( ;; )
     {
-        xCount = FreeRTOS_recvfrom( xUDPServerSocket,
-                                    ( void * ) pcBuffer,
-                                    sizeof( pcBuffer ) - 1,
+        xCount = FreeRTOS_recvfrom( xCLIServerSocket,
+                                    ( void * )( &( cInputCommandString[ 0 ] ) ),
+                                    mainMAX_COMMAND_INPUT_SIZE,
                                     0,
                                     &( xSourceAddress ),
                                     &( xSourceAddressLength ) );
 
         /* Since we set the receive timeout to portMAX_DELAY, the
-         * above call should only return when a message is received. */
+         * above call should only return when a command is received. */
         configASSERT( xCount > 0 );
 
-        pcBuffer[ xCount ] = '\0';
+        cInputCommandString[ xCount ] = '\0';
 
-        configPRINTF( ( "Received message. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_addr,
+        configPRINTF( ( "Received command. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_addr,
                                                                         xSourceAddress.sin_port,
-                                                                        pcBuffer ) );
-        /*Send the buffer to the CLI*/
-        FreeRTOS_CLIProcessCommand( pcBuffer, cOutputString, cmdMAX_OUTPUT_SIZE );
+                                                                        cInputCommandString ) );
 
-        /* Echo the same message back. */
-        FreeRTOS_sendto( xUDPServerSocket,
-                        ( void * ) cOutputString,
-                        xCount + 1, /* Include the terminating null byte we added. */
-                        0,
-                        &( xSourceAddress ),
-                        xSourceAddressLength );
+        do
+        {
+            /* Send the received command to the FreeRTOS+CLI. */
+            xResponseRemaining = FreeRTOS_CLIProcessCommand( cInputCommandString,
+                                                             cOutputResponseString,
+                                                             mainMAX_COMMAND_OUTPUT_SIZE );
+
+            /* Ensure null termination so that the strlen below does not
+             * end up reading past bounds. */
+            cOutputResponseString[ mainMAX_COMMAND_OUTPUT_SIZE ] = '\0';
+
+            /* Send the command response. */
+            lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
+                                          ( void * ) cOutputResponseString,
+                                          strlen( cOutputResponseString ),
+                                          0,
+                                          &( xSourceAddress ),
+                                          xSourceAddressLength );
+
+            configPRINTF( ( "Response bytes %d sent. \n", lBytesSent ) );
+
+        } while( ( lBytesSent > 0 ) && ( xResponseRemaining == pdTRUE ) );
     }
+}
+/*-----------------------------------------------------------*/
+
+static void prvRegisterCLICommands( void )
+{
+extern void vRegisterPingCommand( void );
+
+    vRegisterPingCommand();
 }
 /*-----------------------------------------------------------*/
 
@@ -204,11 +227,11 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
             xTasksAlreadyCreated = pdTRUE;
 
             /* Sockets, and tasks that use the TCP/IP stack can be created here. */
-            xTaskCreate( prvServerTask,
-                         "Server",
-                         mainUDP_SERVER_STACK_SIZE,
+            xTaskCreate( prvCliTask,
+                         "cli",
+                         mainCLI_TASK_STACK_SIZE,
                          NULL,
-                         mainUDP_SERVER_TASK_PRIORITY,
+                         mainCLI_TASK_PRIORITY,
                          NULL );
         }
 

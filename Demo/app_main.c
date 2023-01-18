@@ -1,5 +1,6 @@
 /* Standard includes. */
 #include <stdio.h>
+#include <stdlib.h>
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
@@ -73,7 +74,8 @@ static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
 
 void app_main( void )
 {
-    BaseType_t xRet;
+
+	BaseType_t xRet;
     const uint8_t ucIPAddress[ 4 ] = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 };
     const uint8_t ucNetMask[ 4 ] = { configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3 };
     const uint8_t ucGatewayAddress[ 4 ] = { configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3 };
@@ -101,6 +103,34 @@ void app_main( void )
     {
     }
 }
+/*-----------------------------------------------------------*/
+
+char *sliceString(char *str, int start, int end)
+{
+
+    int i;
+    int size = (end - start) + 2;
+    char *output = (char *)malloc(size * sizeof(char));
+
+    for (i = 0; start <= end; start++, i++)
+    {
+        output[i] = str[start];
+    }
+
+    output[size] = '\0';
+
+    return output;
+}
+
+/*-----------------------------------------------------------*/
+
+void vparse_UDPPacket(char *cInputCommandString, BaseType_t xCount)
+{
+
+	cInputCommandString = sliceString(cInputCommandString, 4, xCount-2 );
+
+}
+
 /*-----------------------------------------------------------*/
 
 static void prvCliTask( void *pvParameters )
@@ -221,9 +251,11 @@ static void prvRegisterCLICommands( void )
 {
 extern void vRegisterPingCommand( void );
 extern void vRegisterPcapCommand( void );
+extern void vRegisterNetStatCommand( void );
 
     vRegisterPingCommand();
     vRegisterPcapCommand();
+    vRegisterNetStatCommand();
 }
 /*-----------------------------------------------------------*/
 

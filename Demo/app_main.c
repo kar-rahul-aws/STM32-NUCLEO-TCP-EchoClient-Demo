@@ -33,13 +33,17 @@
 /*-----------------------------------------------------------*/
 
 #include "pack_struct_start.h"
+
+
 struct xPacketHeader
 {
     uint8_t ucStartMarker;
     uint8_t ucPacketNumber;
     uint16_t usPayloadLength;
-}
-#include "pack_struct_end.h"
+};
+
+
+
 typedef struct xPacketHeader PacketHeader_t;
 
 #define PACKET_HEADER_LENGTH    sizeof( PacketHeader_t )

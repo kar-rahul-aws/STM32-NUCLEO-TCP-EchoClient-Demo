@@ -229,7 +229,7 @@ extern void vPrintStringToUart( const char *str );
 
 /* CLI related configurations. */
 #define configCLI_SERVER_PORT                   1234
-#define configMAX_COMMAND_INPUT_SIZE            60
+#define configMAX_COMMAND_INPUT_SIZE            128
 #define configCOMMAND_INT_MAX_OUTPUT_SIZE       1024
 
 #endif /* FREERTOS_CONFIG_H */

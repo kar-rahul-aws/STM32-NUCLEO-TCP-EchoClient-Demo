@@ -5,40 +5,16 @@
  *      Author: karahulx
  */
 
-#ifndef NETSTAT_NETSTAT_CAPTURE_H_
-#define NETSTAT_NETSTAT_CAPTURE_H_
+#ifndef NETSTAT_NETSTAT_CAPTURE_H
+#define NETSTAT_NETSTAT_CAPTURE_H
 
 
 /* Standard includes. */
 #include <stdint.h>
 
 /**
- * @brief For Demo purpose
+ * @brief For Demo purpose.
  */
-/*NetStat static structures - FreeRTOS+TCP*/
-
-typedef enum
-{
-    eStartStat = 0,
-    eStopStat,
-    eGetStat
-} eState_t;
-
-typedef enum
-{
-    eDataStat = 0,
-    ePerfState,
-    eAll
-} eStatVal_t;
-
-typedef enum
-{
-    eUDP = 0,
-    eTCP,
-    eICMP,
-    eDefault
-} eProtocol_t;
-
 
 typedef struct network_stats
 {
@@ -48,61 +24,40 @@ typedef struct network_stats
     uint32_t pcket_drop_tx;
     uint32_t bytes_rx;
     uint32_t bytes_tx;
-}stats;
+} network_stats_t;
 
-
-typedef struct TCP_stats
+typedef struct tcp_stats
 {
-    stats unicast_stat;
-    stats multicast_stat;
+    network_stats_t unicast_stats;
+    network_stats_t multicast_stats;
     uint32_t out_ack;
     uint32_t in_ack;
-}tcp;
+} tcp_stats_t;
 
-typedef struct ICMP_stats
+typedef struct icmp_stats
 {
-    stats unicast_stat;
-    stats multicast_stat;
-}icmp;
+    network_stats_t unicast_stats;
+    network_stats_t multicast_stats;
+} icmp_stats_t;
 
-typedef struct UDP_stats
+typedef struct udp_stats
 {
-    stats unicast_stat;
-    stats multicast_stat;
-}udp;
+    network_stats_t unicast_stats;
+    network_stats_t multicast_stats;
+} udp_stats_t;
 
 typedef struct all_stats
 {
-    tcp tcp_stat;
-    udp udp_stat;
-    icmp icmp_stat;
+    tcp_stats_t tcp_stats;
+    udp_stats_t udp_stats;
+    icmp_stats_t icmp_stats;
     uint64_t rx_latency;
     uint64_t tx_latency;
-}allstat;
-
-
-
-
-/*NetStat static structures - FreeRTOS+TCP*/
+} all_stats_t;
 
 /**
- * @brief Start capturing packets.
+ * @brief Get all network stats.
  */
-void netstat_capture_start(void);
-
-/**
- * @brief Stop capturing packets.
- */
-void netstat_capture_stop(void);
-
-
-/**
- * @brief Capture a packet.
- *
- * @param
- *
- */
-void netstat_capture_record_packet(void);
-
+void netstat_get_all_stats( all_stats_t * p_all_stats );
 
 #endif /* NETSTAT_NETSTAT_CAPTURE_H_ */

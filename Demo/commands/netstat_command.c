@@ -11,79 +11,52 @@
 /* FreeRTOS+CLI includes. */
 #include "FreeRTOS_CLI.h"
 
+/* Netstat includes. */
 #include "netstat_capture.h"
 
 /**
- * @brief Interpreter that handles the ping command.
+ * @brief Interpreter that handles the netstat command.
  */
-/**
- * @brief Buffer which contains all the network Statistics.
- */
-
-
 static portBASE_TYPE prvNetStatCommandInterpreter( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
 {
-		const char * pcCommandParameter;
-	    BaseType_t xCommandParameterLength;
-	    allstat result;
-	    configASSERT( pcWriteBuffer );
+        all_stats_t all_network_stats;
 
-	    pcCommandParameter = FreeRTOS_CLIGetParameter( pcCommandString, 1, &( xCommandParameterLength ) );
+        ( void ) pcCommandString;
 
-	    if( pcCommandParameter != NULL )
-	    {
-	    	if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
-	    	{
-	    		netstat_capture_start();
-	    		snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK." );
-	    	}
-	    	else if( strncmp( pcCommandParameter, "stop", xCommandParameterLength ) == 0 )
-	    	{
-	    		netstat_capture_stop();
-	    		snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK." );
+        configASSERT( pcWriteBuffer );
 
-	  	    }
-	    	else if( strncmp( pcCommandParameter, "get", xCommandParameterLength ) == 0 )
-	    	{
-	    		vGetNetStat(3,0,0,0,0,&result);
-	    		configPRINTF(("%d\n",result.udp_stat.unicast_stat.bytes_rx));
-	    		snprintf( ( char * ) pcWriteBuffer, "%d,", (char*)result.udp_stat.unicast_stat.bytes_rx);
+        netstat_get_all_stats( &( all_network_stats ) );
+        snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld",
+                                                  all_network_stats.udp_stats.unicast_stats.pckt_rx,
+                                                  all_network_stats.udp_stats.unicast_stats.pckt_tx,
+                                                  all_network_stats.udp_stats.unicast_stats.pcket_drop_rx,
+                                                  all_network_stats.udp_stats.unicast_stats.pcket_drop_tx,
+                                                  all_network_stats.udp_stats.unicast_stats.bytes_rx,
+                                                  all_network_stats.udp_stats.unicast_stats.bytes_tx );
 
-	    	}
-	    	else
-	    	{
-	    		snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "Bad Command." );
-	    	}
-
-	    }
-	    else
-	    {
-	        snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "Bad Command." );
-	    }
-
-	    /* Return pdFALSE to indicate that the response is complete. */
-	    return pdFALSE;
+        /* Return pdFALSE to indicate that the response is complete. */
+        return pdFALSE;
 }
 
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Structure that defines the "ping" command line command.
+ * @brief Structure that defines the "netstat" command line command.
  */
 static const CLI_Command_Definition_t xNetStatCommand =
 {
     ( const char * const ) "netstat", /* The command string to type. */
-    ( const char * const ) "netstat: Starts, stops and gets the Network Statistics according to the parameter - start,stop,get.\r\n",
+    ( const char * const ) "netstat: Get the Network Statistics.\r\n",
     prvNetStatCommandInterpreter, /* The interpreter function for the command. */
-    1 /* No parameters are expected. */
+    0 /* No parameters are expected. */
 };
 
 /*-----------------------------------------------------------*/
 
 void vRegisterNetStatCommand( void )
 {
-	/* Register ping command. */
-	FreeRTOS_CLIRegisterCommand( &( xNetStatCommand ) );
+    /* Register ping command. */
+    FreeRTOS_CLIRegisterCommand( &( xNetStatCommand ) );
 }
 
 /*-----------------------------------------------------------*/

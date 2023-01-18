@@ -74,8 +74,14 @@ static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacke
 static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
                                           struct freertos_sockaddr * pxSourceAddress,
                                           socklen_t xSourceAddressLength,
+                                          uint8_t *pucPacketNumber,
                                           const uint8_t * pucResponse,
                                           uint32_t ulResponseLength );
+
+static BaseType_t prvSendResponseEndMarker( Socket_t xCLIServerSocket,
+                                            struct freertos_sockaddr * pxSourceAddress,
+                                            socklen_t xSourceAddressLength,
+                                            uint8_t *pucPacketNumber );
 /*-----------------------------------------------------------*/
 
 void app_main( void )
@@ -157,62 +163,73 @@ static void prvCliTask( void *pvParameters )
 
         if( prvIsValidRequest( ( const uint8_t * ) &( cInputCommandString[ 0 ] ), xCount ) == pdTRUE )
         {
+            uint8_t ucPacketNumber = 1;
+
             configPRINTF( ( "Received command. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_addr,
                                                                              xSourceAddress.sin_port,
                                                                              &( cInputCommandString[ PACKET_HEADER_LENGTH ] ) ) );
 
-            /* Send the received command to the FreeRTOS+CLI. */
-            xResponseRemaining = FreeRTOS_CLIProcessCommand( &( cInputCommandString[ PACKET_HEADER_LENGTH ] ),
-                                                                pcOutputBuffer,
-                                                                configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 );
-
-            configASSERT( xResponseRemaining == pdFALSE );
-
-            /* Ensure null termination so that the strlen below does not
-             * end up reading past bounds. */
-            pcOutputBuffer[ configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 ] = '\0';
-
-            ulResponseLength = strlen( pcOutputBuffer );
-
-            /* HACK - Check if the output buffer contains one of our special
-             * markers indicating the need of a special response and process
-             * accordingly. */
-            if( strncmp( pcOutputBuffer, "PCAP-GET", ulResponseLength ) == 0 )
+            do
             {
-                const uint8_t * pucPcapData;
-                uint32_t ulPcapDataLength;
+                /* Send the received command to the FreeRTOS+CLI. */
+                xResponseRemaining = FreeRTOS_CLIProcessCommand( &( cInputCommandString[ PACKET_HEADER_LENGTH ] ),
+                                                                    pcOutputBuffer,
+                                                                    configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 );
 
-                pcap_capture_get_captured_data( &( pucPcapData ),
-                                                &( ulPcapDataLength) );
+                /* Ensure null termination so that the strlen below does not
+                * end up reading past bounds. */
+                pcOutputBuffer[ configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 ] = '\0';
 
-                xResponseSent = prvSendCommandResponse( xCLIServerSocket,
-                                                        &( xSourceAddress ),
-                                                        xSourceAddressLength,
-                                                        pucPcapData,
-                                                        ulPcapDataLength );
+                ulResponseLength = strlen( pcOutputBuffer );
 
-                /* Next fetch should not get the same capture but the capture
-                 * after this point. */
-                pcap_capture_reset();
-            }
-            else
-            {
-                /* Send the command response. */
-                xResponseSent = prvSendCommandResponse( xCLIServerSocket,
-                                                        &( xSourceAddress ),
-                                                        xSourceAddressLength,
-                                                        ( const uint8_t * ) pcOutputBuffer,
-                                                        ulResponseLength );
-            }
+                /* HACK - Check if the output buffer contains one of our special
+                * markers indicating the need of a special response and process
+                * accordingly. */
+                if( strncmp( pcOutputBuffer, "PCAP-GET", ulResponseLength ) == 0 )
+                {
+                    const uint8_t * pucPcapData;
+                    uint32_t ulPcapDataLength;
 
-            if( xResponseSent == pdPASS )
-            {
-                configPRINTF( ( "Response sent successfully. \n" ) );
-            }
-            else
-            {
-                configPRINTF( ( "[ERROR] Failed to send response. \n" ) );
-            }
+                    pcap_capture_get_captured_data( &( pucPcapData ),
+                                                    &( ulPcapDataLength) );
+
+                    xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                            &( xSourceAddress ),
+                                                            xSourceAddressLength,
+                                                            &( ucPacketNumber ),
+                                                            pucPcapData,
+                                                            ulPcapDataLength );
+
+                    /* Next fetch should not get the same capture but the capture
+                    * after this point. */
+                    pcap_capture_reset();
+                }
+                else
+                {
+                    /* Send the command response. */
+                    xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                            &( xSourceAddress ),
+                                                            xSourceAddressLength,
+                                                            &( ucPacketNumber ),
+                                                            ( const uint8_t * ) pcOutputBuffer,
+                                                            ulResponseLength );
+                }
+
+                if( xResponseSent == pdPASS )
+                {
+                    configPRINTF( ( "Response sent successfully. \n" ) );
+                }
+                else
+                {
+                    configPRINTF( ( "[ERROR] Failed to send response. \n" ) );
+                }
+            } while( xResponseRemaining == pdTRUE );
+
+            /* Send the last packet with zero payload length. */
+            ( void ) prvSendResponseEndMarker( xCLIServerSocket,
+                                               &( xSourceAddress ),
+                                               xSourceAddressLength,
+                                               &( ucPacketNumber ) );
         }
         else
         {
@@ -287,21 +304,50 @@ static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacke
 }
 /*-----------------------------------------------------------*/
 
+static BaseType_t prvSendResponseEndMarker( Socket_t xCLIServerSocket,
+                                            struct freertos_sockaddr * pxSourceAddress,
+                                            socklen_t xSourceAddressLength,
+                                            uint8_t *pucPacketNumber )
+{
+    BaseType_t ret;
+    PacketHeader_t header;
+    int32_t lBytesSent;
+
+    header.ucStartMarker = PACKET_START_MARKER;
+    header.ucPacketNumber = *pucPacketNumber;
+    header.usPayloadLength = 0U;
+
+    lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
+                                  ( const void * ) &( header ),
+                                  sizeof( PacketHeader_t ),
+                                  0,
+                                  pxSourceAddress,
+                                  xSourceAddressLength );
+
+    if( lBytesSent != PACKET_HEADER_LENGTH )
+    {
+        configPRINTF( ("[ERROR] Failed to last response header.\n" ) );
+        ret = pdFAIL;
+    }
+
+    return ret;
+}
+/*-----------------------------------------------------------*/
+
 static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
                                           struct freertos_sockaddr * pxSourceAddress,
                                           socklen_t xSourceAddressLength,
+                                          uint8_t *pucPacketNumber,
                                           const uint8_t * pucResponse,
                                           uint32_t ulResponseLength )
 {
     BaseType_t ret = pdPASS;
     PacketHeader_t header;
     int32_t lBytesSent;
-    uint8_t ucPacketNumber;
     uint32_t ulBytesToSend, ulRemainingBytes, ulBytesSent;
 
     ulRemainingBytes = ulResponseLength;
     ulBytesSent = 0;
-    ucPacketNumber = 1;
 
     while( ulRemainingBytes > 0 )
     {
@@ -314,8 +360,8 @@ static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
 
         /* Send header. */
         header.ucStartMarker = PACKET_START_MARKER;
-        header.ucPacketNumber = ucPacketNumber;
-        ucPacketNumber++;
+        header.ucPacketNumber = *pucPacketNumber;
+        *pucPacketNumber = ( *pucPacketNumber ) + 1;
         header.usPayloadLength = FreeRTOS_htons( ( uint16_t ) ulBytesToSend );
 
         lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
@@ -349,26 +395,6 @@ static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
 
         ulRemainingBytes -= ulBytesToSend;
         ulBytesSent += ulBytesToSend;
-    }
-
-    if( ret == pdPASS )
-    {
-        header.ucStartMarker = PACKET_START_MARKER;
-        header.ucPacketNumber = ucPacketNumber;
-        header.usPayloadLength = 0U;
-
-        lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
-                                      ( const void * ) &( header ),
-                                      sizeof( PacketHeader_t ),
-                                      0,
-                                      pxSourceAddress,
-                                      xSourceAddressLength );
-
-        if( lBytesSent != PACKET_HEADER_LENGTH )
-        {
-            configPRINTF( ("[ERROR] Failed to last response header.\n" ) );
-            ret = pdFAIL;
-        }
     }
 
     return ret;

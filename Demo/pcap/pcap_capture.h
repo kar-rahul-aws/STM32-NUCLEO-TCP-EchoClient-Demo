@@ -5,6 +5,11 @@
 #include <stdint.h>
 
 /**
+ * @brief Reset the capture buffer.
+ */
+void pcap_capture_reset( void );
+
+/**
  * @brief Start capturing packets.
  */
 void pcap_capture_start( void );

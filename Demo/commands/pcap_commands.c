@@ -30,6 +30,7 @@ static portBASE_TYPE prvPcapCommandInterpreter( char *pcWriteBuffer, size_t xWri
     {
         if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
         {
+            pcap_capture_reset();
             pcap_capture_start();
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
@@ -37,6 +38,15 @@ static portBASE_TYPE prvPcapCommandInterpreter( char *pcWriteBuffer, size_t xWri
         {
             pcap_capture_stop();
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
+        }
+        else if( strncmp( pcCommandParameter, "get", xCommandParameterLength ) == 0 )
+        {
+            /* HACK - PCAP data is binary data and therefore, cannot be sent as
+             * a null terminated string as payload can have legitimate null
+             * bytes. Instead, we write a marker here in the output buffer which
+             * the caller of FreeRTOS_CLIProcessCommand checks and sends the
+             * actual data instead of this response. */
+            snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "PCAP-GET" );
         }
         else
         {

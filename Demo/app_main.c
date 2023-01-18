@@ -15,8 +15,11 @@
 /* Logging includes. */
 #include "logging.h"
 
-/*CLI includes*/
+/* CLI includes. */
 #include "FreeRTOS_CLI.h"
+
+/* Pcap capture includes. */
+#include "pcap_capture.h"
 
 /* Demo definitions. */
 #define mainCLI_TASK_STACK_SIZE             512
@@ -164,12 +167,36 @@ static void prvCliTask( void *pvParameters )
 
             ulResponseLength = strlen( pcOutputBuffer );
 
-            /* Send the command response. */
-            xResponseSent = prvSendCommandResponse( xCLIServerSocket,
-                                                    &( xSourceAddress ),
-                                                    xSourceAddressLength,
-                                                    ( const uint8_t * ) pcOutputBuffer,
-                                                    ulResponseLength );
+            /* HACK - Check if the output buffer contains one of our special
+             * markers indicating the need of a special response and process
+             * accordingly. */
+            if( strncmp( pcOutputBuffer, "PCAP-GET", ulResponseLength ) == 0 )
+            {
+                const uint8_t * pucPcapData;
+                uint32_t ulPcapDataLength;
+
+                pcap_capture_get_captured_data( &( pucPcapData ),
+                                                &( ulPcapDataLength) );
+
+                xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                        &( xSourceAddress ),
+                                                        xSourceAddressLength,
+                                                        pucPcapData,
+                                                        ulPcapDataLength );
+
+                /* Next fetch should not get the same capture but the capture
+                 * after this point. */
+                pcap_capture_reset();
+            }
+            else
+            {
+                /* Send the command response. */
+                xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                        &( xSourceAddress ),
+                                                        xSourceAddressLength,
+                                                        ( const uint8_t * ) pcOutputBuffer,
+                                                        ulResponseLength );
+            }
 
             if( xResponseSent == pdPASS )
             {
@@ -179,7 +206,6 @@ static void prvCliTask( void *pvParameters )
             {
                 configPRINTF( ( "[ERROR] Failed to send response. \n" ) );
             }
-
         }
         else
         {

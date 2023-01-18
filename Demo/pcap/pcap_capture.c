@@ -33,7 +33,7 @@ static uint8_t capture_buffer[ configPCAP_CAPTURE_BUFFER_LENGTH ];
 
 /*-----------------------------------------------------------*/
 
-void pcap_capture_start( void )
+void pcap_capture_reset( void )
 {
     pcap_writer_error_t ret_val;
 
@@ -46,7 +46,12 @@ void pcap_capture_start( void )
                                       &( capture_buffer[ 0 ] ),
                                       configPCAP_CAPTURE_BUFFER_LENGTH );
     configASSERT( ret_val == PCAP_WRITER_SUCCESS );
+}
 
+/*-----------------------------------------------------------*/
+
+void pcap_capture_start( void )
+{
     /* Record that the capture is now running. */
     capture_running = 1;
 }
@@ -55,6 +60,7 @@ void pcap_capture_start( void )
 
 void pcap_capture_stop( void )
 {
+    /* Record that the capture is no longer running. */
     capture_running = 0;
 }
 

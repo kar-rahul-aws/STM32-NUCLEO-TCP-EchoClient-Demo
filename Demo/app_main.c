@@ -50,6 +50,8 @@ typedef struct xPacketHeader PacketHeader_t;
 #define PACKET_START_MARKER     0x55
 /*-----------------------------------------------------------*/
 
+uint32_t ulTim7Tick = 0;
+
 extern UART_HandleTypeDef huart3;
 
 const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_ADDR2, configMAC_ADDR3, configMAC_ADDR4, configMAC_ADDR5 };
@@ -227,10 +229,12 @@ static void prvRegisterCLICommands( void )
 extern void vRegisterPingCommand( void );
 extern void vRegisterPcapCommand( void );
 extern void vRegisterNetStatCommand( void );
+extern void vRegisterTopCommand( void );
 
     vRegisterPingCommand();
     vRegisterPcapCommand();
     vRegisterNetStatCommand();
+    vRegisterTopCommand();
 }
 /*-----------------------------------------------------------*/
 
@@ -474,6 +478,18 @@ BaseType_t xReturn;
 void vPrintStringToUart( const char *str )
 {
     HAL_UART_Transmit( &( huart3 ), ( const uint8_t * )str, strlen( str ), 1000 );
+}
+/*-----------------------------------------------------------*/
+
+void vIncrementTim7Tick( void )
+{
+    ulTim7Tick++;
+}
+/*-----------------------------------------------------------*/
+
+uint32_t ulGetTim7Tick( void )
+{
+    return ulTim7Tick;
 }
 /*-----------------------------------------------------------*/
 

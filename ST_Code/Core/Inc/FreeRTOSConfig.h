@@ -232,4 +232,11 @@ extern void vPrintStringToUart( const char *str );
 #define configMAX_COMMAND_INPUT_SIZE            128
 #define configCOMMAND_INT_MAX_OUTPUT_SIZE       1024
 
+/* Kernel stats related. */
+extern uint32_t ulGetTim7Tick( void );
+#define configGENERATE_RUN_TIME_STATS           1
+#define configUSE_STATS_FORMATTING_FUNCTIONS    1
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()
+#define portGET_RUN_TIME_COUNTER_VALUE()        ulGetTim7Tick()
+
 #endif /* FREERTOS_CONFIG_H */

@@ -39,24 +39,41 @@ static portBASE_TYPE prvNetStatCommandInterpreter( char *pcWriteBuffer, size_t x
             	if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
             	{
             		xResult = vGetNetStat(eStartStat, &( all_network_stats ));
+            		configPRINTF(("%d\n",xResult));
             	}
             	else if( strncmp( pcCommandParameter, "stop", xCommandParameterLength ) == 0 )
             	{
             		xResult = vGetNetStat(eStopStat, &( all_network_stats ));
+            		configPRINTF(("%d\n",xResult));
             	}
             	else if( strncmp( pcCommandParameter, "get", xCommandParameterLength ) == 0 )
                 {
 
 					xResult = vGetNetStat(eGetStat, &( all_network_stats ));
-					snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,",
-																all_network_stats.udp_stat.stat.bytes_rx,
-																all_network_stats.udp_stat.stat.bytes_tx,
-																all_network_stats.udp_stat.stat.pcket_drop_rx,
-																all_network_stats.udp_stat.stat.pcket_drop_tx,
+					configPRINTF(("%d\n",xResult));
+					snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%lld,%lld,",
 																all_network_stats.udp_stat.stat.pckt_rx,
 																all_network_stats.udp_stat.stat.pckt_tx,
+																all_network_stats.udp_stat.stat.pcket_drop_rx,
+																all_network_stats.udp_stat.stat.pcket_drop_tx,
+																all_network_stats.udp_stat.stat.bytes_rx,
+																all_network_stats.udp_stat.stat.bytes_tx,
+																all_network_stats.tcp_stat.stat.pckt_rx,
+																all_network_stats.tcp_stat.stat.pckt_tx,
+																all_network_stats.tcp_stat.stat.pcket_drop_rx,
+																all_network_stats.tcp_stat.stat.pcket_drop_tx,
 																all_network_stats.tcp_stat.stat.bytes_rx,
-																all_network_stats.icmp_stat.stat.pckt_rx);
+																all_network_stats.tcp_stat.stat.bytes_tx,
+																all_network_stats.tcp_stat.out_ack,
+																all_network_stats.tcp_stat.in_ack,
+																all_network_stats.icmp_stat.stat.pckt_rx,
+																all_network_stats.icmp_stat.stat.pckt_tx,
+																all_network_stats.icmp_stat.stat.pcket_drop_rx,
+																all_network_stats.icmp_stat.stat.pcket_drop_tx,
+																all_network_stats.icmp_stat.stat.bytes_rx,
+																all_network_stats.icmp_stat.stat.bytes_tx,
+																all_network_stats.rx_latency,
+																all_network_stats.tx_latency);
                 }
             }
 

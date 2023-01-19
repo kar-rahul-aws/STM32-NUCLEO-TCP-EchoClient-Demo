@@ -22,61 +22,40 @@
  */
 static portBASE_TYPE prvNetStatCommandInterpreter( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
 {
+    allstat all_network_stats;
+    eErrorType_t xResult = eIncorrectStat;
 
-		const char * pcCommandParameter;
-	    BaseType_t xCommandParameterLength;
-        allstat all_network_stats;
-        eErrorType_t xResult = eIncorrectStat;
+    ( void ) pcCommandString;
 
-        ( void ) pcCommandString;
+    configASSERT( pcWriteBuffer );
 
-        configASSERT( pcWriteBuffer );
-        pcCommandParameter = FreeRTOS_CLIGetParameter( pcCommandString, 1, &( xCommandParameterLength ) );
+    xResult = vGetNetStat( eGetStat, &( all_network_stats ) );
+    configASSERT( xResult == eSuccessStat );
 
-            if( pcCommandParameter != NULL )
-            {
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld",
+                                               all_network_stats.udp_stat.stat.pckt_rx,
+                                               all_network_stats.udp_stat.stat.pckt_tx,
+                                               all_network_stats.udp_stat.stat.pcket_drop_rx,
+                                               all_network_stats.udp_stat.stat.pcket_drop_tx,
+                                               all_network_stats.udp_stat.stat.bytes_rx,
+                                               all_network_stats.udp_stat.stat.bytes_tx,
+                                               all_network_stats.tcp_stat.stat.pckt_rx,
+                                               all_network_stats.tcp_stat.stat.pckt_tx,
+                                               all_network_stats.tcp_stat.stat.pcket_drop_rx,
+                                               all_network_stats.tcp_stat.stat.pcket_drop_tx,
+                                               all_network_stats.tcp_stat.stat.bytes_rx,
+                                               all_network_stats.tcp_stat.stat.bytes_tx,
+                                               all_network_stats.icmp_stat.stat.pckt_rx,
+                                               all_network_stats.icmp_stat.stat.pckt_tx,
+                                               all_network_stats.icmp_stat.stat.pcket_drop_rx,
+                                               all_network_stats.icmp_stat.stat.pcket_drop_tx,
+                                               all_network_stats.icmp_stat.stat.bytes_rx,
+                                               all_network_stats.icmp_stat.stat.bytes_tx,
+                                               all_network_stats.rx_latency,
+                                               all_network_stats.tx_latency );
 
-            	if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
-            	{
-            		xResult = vGetNetStat(eStartStat, &( all_network_stats ));
-            		snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "Start Capturing Netstat" );
-            	}
-            	else if( strncmp( pcCommandParameter, "stop", xCommandParameterLength ) == 0 )
-            	{
-            		xResult = vGetNetStat(eStopStat, &( all_network_stats ));
-            		snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "Stop Capturing Netstat" );
-            	}
-            	else if( strncmp( pcCommandParameter, "get", xCommandParameterLength ) == 0 )
-                {
-
-					xResult = vGetNetStat(eGetStat, &( all_network_stats ));
-
-					snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,",
-																all_network_stats.udp_stat.stat.pckt_rx,
-																all_network_stats.udp_stat.stat.pckt_tx,
-																all_network_stats.udp_stat.stat.pcket_drop_rx,
-																all_network_stats.udp_stat.stat.pcket_drop_tx,
-																all_network_stats.udp_stat.stat.bytes_rx,
-																all_network_stats.udp_stat.stat.bytes_tx,
-																all_network_stats.tcp_stat.stat.pckt_rx,
-																all_network_stats.tcp_stat.stat.pckt_tx,
-																all_network_stats.tcp_stat.stat.pcket_drop_rx,
-																all_network_stats.tcp_stat.stat.pcket_drop_tx,
-																all_network_stats.tcp_stat.stat.bytes_rx,
-																all_network_stats.tcp_stat.stat.bytes_tx,
-																all_network_stats.icmp_stat.stat.pckt_rx,
-																all_network_stats.icmp_stat.stat.pckt_tx,
-																all_network_stats.icmp_stat.stat.pcket_drop_rx,
-																all_network_stats.icmp_stat.stat.pcket_drop_tx,
-																all_network_stats.icmp_stat.stat.bytes_rx,
-																all_network_stats.icmp_stat.stat.bytes_tx,
-																all_network_stats.rx_latency,
-																all_network_stats.tx_latency);
-                }
-            }
-
-        /* Return pdFALSE to indicate that the response is complete. */
-        return pdFALSE;
+    /* Return pdFALSE to indicate that the response is complete. */
+    return pdFALSE;
 }
 
 /*-----------------------------------------------------------*/
@@ -89,14 +68,14 @@ static const CLI_Command_Definition_t xNetStatCommand =
     ( const char * const ) "netstat", /* The command string to type. */
     ( const char * const ) "netstat: Get the Network Statistics.\r\n",
     prvNetStatCommandInterpreter, /* The interpreter function for the command. */
-    1 /* No parameters are expected. */
+    0 /* No parameters are expected. */
 };
 
 /*-----------------------------------------------------------*/
 
 void vRegisterNetStatCommand( void )
 {
-    /* Register ping command. */
+    /* Register netstat command. */
     FreeRTOS_CLIRegisterCommand( &( xNetStatCommand ) );
 }
 

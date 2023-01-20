@@ -1,0 +1,12 @@
+event-record-types:
+  sched_switch:
+    payload-field-type:
+      class: structure
+      members:
+        - prev_comm: string
+        - prev_tid: uint32
+        - prev_prio: uint32
+        - prev_state: uint32
+        - next_comm: string
+        - next_tid: uint32
+        - next_prio: uint32

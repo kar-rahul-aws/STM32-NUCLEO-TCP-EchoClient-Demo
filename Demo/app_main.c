@@ -22,6 +22,9 @@
 /* Pcap capture includes. */
 #include "pcap_capture.h"
 
+/* Trace includes */
+#include "freertos_barectf_tracer_platform_in_mem.h"
+
 /* Demo definitions. */
 #define mainCLI_TASK_STACK_SIZE             512
 #define mainCLI_TASK_PRIORITY               tskIDLE_PRIORITY
@@ -182,14 +185,14 @@ static void prvCliTask( void *pvParameters )
                                                                     configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 );
 
                 /* Ensure null termination so that the strlen below does not
-                * end up reading past bounds. */
+                 * end up reading past bounds. */
                 pcOutputBuffer[ configCOMMAND_INT_MAX_OUTPUT_SIZE - 1 ] = '\0';
 
                 ulResponseLength = strlen( pcOutputBuffer );
 
                 /* HACK - Check if the output buffer contains one of our special
-                * markers indicating the need of a special response and process
-                * accordingly. */
+                 * markers indicating the need of a special response and process
+                 * accordingly. */
                 if( strncmp( pcOutputBuffer, "PCAP-GET", ulResponseLength ) == 0 )
                 {
                     const uint8_t * pucPcapData;
@@ -207,8 +210,24 @@ static void prvCliTask( void *pvParameters )
                                                             ulPcapDataLength );
 
                     /* Next fetch should not get the same capture but the capture
-                    * after this point. */
+                     * after this point. */
                     pcap_capture_reset();
+                }
+                else if( strncmp( pcOutputBuffer, "TRACE-GET", ulResponseLength ) == 0 )
+                {
+                    const uint8_t * pucTraceCapture;
+                    uint32_t ulTraceCaptureLength;
+
+                    FreeRTOSBarectfTracer_GetTrace( &( pucTraceCapture ),
+                                                    &( ulTraceCaptureLength) );
+
+                    xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                            &( xSourceAddress ),
+                                                            xSourceAddressLength,
+                                                            &( ucPacketNumber ),
+                                                            &( ucRequestId [ 0 ] ),
+                                                            pucTraceCapture,
+                                                            ulTraceCaptureLength );
                 }
                 else
                 {
@@ -255,11 +274,13 @@ extern void vRegisterPingCommand( void );
 extern void vRegisterPcapCommand( void );
 extern void vRegisterNetStatCommand( void );
 extern void vRegisterTopCommand( void );
+extern void vRegisterTraceCommand( void );
 
     vRegisterPingCommand();
     vRegisterPcapCommand();
     vRegisterNetStatCommand();
     vRegisterTopCommand();
+    vRegisterTraceCommand();
 }
 /*-----------------------------------------------------------*/
 

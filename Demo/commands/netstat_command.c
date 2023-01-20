@@ -32,7 +32,7 @@ static portBASE_TYPE prvNetStatCommandInterpreter( char *pcWriteBuffer, size_t x
     xResult = vGetNetStat( eGetStat, &( all_network_stats ) );
     configASSERT( xResult == eSuccessStat );
 
-    snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld",
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%lld,%lld",
                                                all_network_stats.udp_stat.stat.pckt_rx,
                                                all_network_stats.udp_stat.stat.pckt_tx,
                                                all_network_stats.udp_stat.stat.pcket_drop_rx,

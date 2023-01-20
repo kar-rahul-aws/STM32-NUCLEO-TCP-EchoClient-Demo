@@ -40,6 +40,7 @@ struct xPacketHeader
     uint8_t ucStartMarker;
     uint8_t ucPacketNumber;
     uint16_t usPayloadLength;
+    uint8_t ucRequestId[4];
 }
 #include "pack_struct_end.h"
 typedef struct xPacketHeader PacketHeader_t;
@@ -69,19 +70,21 @@ static void prvConfigureMPU( void );
 
 static void prvRegisterCLICommands( void );
 
-static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacketLength );
+static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacketLength, uint8_t * pucRequestId );
 
 static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
                                           struct freertos_sockaddr * pxSourceAddress,
                                           socklen_t xSourceAddressLength,
                                           uint8_t *pucPacketNumber,
+                                          uint8_t *pucRequestId,
                                           const uint8_t * pucResponse,
                                           uint32_t ulResponseLength );
 
 static BaseType_t prvSendResponseEndMarker( Socket_t xCLIServerSocket,
                                             struct freertos_sockaddr * pxSourceAddress,
                                             socklen_t xSourceAddressLength,
-                                            uint8_t *pucPacketNumber );
+                                            uint8_t *pucPacketNumber,
+                                            uint8_t *pucRequestId );
 /*-----------------------------------------------------------*/
 
 void app_main( void )
@@ -149,6 +152,8 @@ static void prvCliTask( void *pvParameters )
 
     for( ;; )
     {
+        uint8_t ucRequestId[ 4 ];
+
         xCount = FreeRTOS_recvfrom( xCLIServerSocket,
                                     ( void * )( &( cInputCommandString[ 0 ] ) ),
                                     configMAX_COMMAND_INPUT_SIZE,
@@ -161,7 +166,7 @@ static void prvCliTask( void *pvParameters )
         configASSERT( xCount > 0 );
         cInputCommandString[ xCount ] = '\0';
 
-        if( prvIsValidRequest( ( const uint8_t * ) &( cInputCommandString[ 0 ] ), xCount ) == pdTRUE )
+        if( prvIsValidRequest( ( const uint8_t * ) &( cInputCommandString[ 0 ] ), xCount, &( ucRequestId[ 0 ] ) ) == pdTRUE )
         {
             uint8_t ucPacketNumber = 1;
 
@@ -197,6 +202,7 @@ static void prvCliTask( void *pvParameters )
                                                             &( xSourceAddress ),
                                                             xSourceAddressLength,
                                                             &( ucPacketNumber ),
+                                                            &( ucRequestId [ 0 ] ),
                                                             pucPcapData,
                                                             ulPcapDataLength );
 
@@ -211,6 +217,7 @@ static void prvCliTask( void *pvParameters )
                                                             &( xSourceAddress ),
                                                             xSourceAddressLength,
                                                             &( ucPacketNumber ),
+                                                            &( ucRequestId [ 0 ] ),
                                                             ( const uint8_t * ) pcOutputBuffer,
                                                             ulResponseLength );
                 }
@@ -229,7 +236,8 @@ static void prvCliTask( void *pvParameters )
             ( void ) prvSendResponseEndMarker( xCLIServerSocket,
                                                &( xSourceAddress ),
                                                xSourceAddressLength,
-                                               &( ucPacketNumber ) );
+                                               &( ucPacketNumber ),
+                                               &( ucRequestId [ 0 ] ) );
         }
         else
         {
@@ -281,7 +289,7 @@ static void prvConfigureMPU( void )
 }
 /*-----------------------------------------------------------*/
 
-static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacketLength )
+static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacketLength, uint8_t * pucRequestId )
 {
     BaseType_t xValidRequest = pdFALSE;
     PacketHeader_t * header;
@@ -297,6 +305,7 @@ static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacke
             ( ( usPayloadLength + PACKET_HEADER_LENGTH ) == ulPacketLength ) )
         {
             xValidRequest = pdTRUE;
+            memcpy( pucRequestId, &( header->ucRequestId[ 0 ] ), 4 );
         }
     }
 
@@ -307,7 +316,8 @@ static BaseType_t prvIsValidRequest( const uint8_t * pucPacket, uint32_t ulPacke
 static BaseType_t prvSendResponseEndMarker( Socket_t xCLIServerSocket,
                                             struct freertos_sockaddr * pxSourceAddress,
                                             socklen_t xSourceAddressLength,
-                                            uint8_t *pucPacketNumber )
+                                            uint8_t *pucPacketNumber,
+                                            uint8_t *pucRequestId )
 {
     BaseType_t ret;
     PacketHeader_t header;
@@ -316,6 +326,7 @@ static BaseType_t prvSendResponseEndMarker( Socket_t xCLIServerSocket,
     header.ucStartMarker = PACKET_START_MARKER;
     header.ucPacketNumber = *pucPacketNumber;
     header.usPayloadLength = 0U;
+    memcpy( &( header.ucRequestId[ 0 ] ), pucRequestId, 4 );
 
     lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
                                   ( const void * ) &( header ),
@@ -338,6 +349,7 @@ static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
                                           struct freertos_sockaddr * pxSourceAddress,
                                           socklen_t xSourceAddressLength,
                                           uint8_t *pucPacketNumber,
+                                          uint8_t *pucRequestId,
                                           const uint8_t * pucResponse,
                                           uint32_t ulResponseLength )
 {
@@ -363,6 +375,7 @@ static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
         header.ucPacketNumber = *pucPacketNumber;
         *pucPacketNumber = ( *pucPacketNumber ) + 1;
         header.usPayloadLength = FreeRTOS_htons( ( uint16_t ) ulBytesToSend );
+        memcpy( &( header.ucRequestId[ 0 ] ), pucRequestId, 4 );
 
         memcpy( &( ucUdpResponseBuffer[ 0 ] ),
                 &( header ),

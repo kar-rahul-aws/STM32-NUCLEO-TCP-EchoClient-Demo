@@ -30,20 +30,18 @@
 #define mainLOGGING_TASK_STACK_SIZE         256
 #define mainLOGGING_TASK_PRIORITY           tskIDLE_PRIORITY
 #define mainLOGGING_QUEUE_LENGTH            10
+
+#define mainMAX_UDP_RESPONSE_SIZE           1024
 /*-----------------------------------------------------------*/
 
 #include "pack_struct_start.h"
-
-
 struct xPacketHeader
 {
     uint8_t ucStartMarker;
     uint8_t ucPacketNumber;
     uint16_t usPayloadLength;
-};
-
-
-
+}
+#include "pack_struct_end.h"
 typedef struct xPacketHeader PacketHeader_t;
 
 #define PACKET_HEADER_LENGTH    sizeof( PacketHeader_t )
@@ -61,6 +59,8 @@ static BaseType_t xTasksAlreadyCreated = pdFALSE;
 extern RNG_HandleTypeDef hrng;
 
 static char cInputCommandString[ configMAX_COMMAND_INPUT_SIZE + 1 ];
+
+static uint8_t ucUdpResponseBuffer[ mainMAX_UDP_RESPONSE_SIZE + PACKET_HEADER_LENGTH ];
 /*-----------------------------------------------------------*/
 
 static void prvCliTask( void * pvParameters );
@@ -353,40 +353,35 @@ static BaseType_t prvSendCommandResponse( Socket_t xCLIServerSocket,
     {
         ulBytesToSend = ulRemainingBytes;
 
-        if( ulBytesToSend > ipMAX_UDP_PAYLOAD_LENGTH )
+        if( ulBytesToSend > mainMAX_UDP_RESPONSE_SIZE )
         {
-            ulBytesToSend = ipMAX_UDP_PAYLOAD_LENGTH;
+            ulBytesToSend = mainMAX_UDP_RESPONSE_SIZE;
         }
 
-        /* Send header. */
+        /* Write header to the response buffer. */
         header.ucStartMarker = PACKET_START_MARKER;
         header.ucPacketNumber = *pucPacketNumber;
         *pucPacketNumber = ( *pucPacketNumber ) + 1;
         header.usPayloadLength = FreeRTOS_htons( ( uint16_t ) ulBytesToSend );
 
+        memcpy( &( ucUdpResponseBuffer[ 0 ] ),
+                &( header ),
+                PACKET_HEADER_LENGTH );
+
+        /* Write actual response to the buffer. */
+        memcpy( &( ucUdpResponseBuffer[ PACKET_HEADER_LENGTH] ),
+                &( pucResponse[ ulBytesSent ] ),
+                ulBytesToSend );
+
+        /* Send response. */
         lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
-                                      ( const void * ) &( header ),
-                                      sizeof( PacketHeader_t ),
+                                      ( const void * ) &( ucUdpResponseBuffer[ 0 ] ),
+                                      ulBytesToSend + PACKET_HEADER_LENGTH,
                                       0,
                                       pxSourceAddress,
                                       xSourceAddressLength );
 
-        if( lBytesSent != PACKET_HEADER_LENGTH )
-        {
-            configPRINTF( ("[ERROR] Failed to send response header.\n" ) );
-            ret = pdFAIL;
-            break;
-        }
-
-        /* Send actual response. */
-        lBytesSent = FreeRTOS_sendto( xCLIServerSocket,
-                                      ( const void * ) &( pucResponse[ ulBytesSent ] ),
-                                      ulBytesToSend,
-                                      0,
-                                      pxSourceAddress,
-                                      xSourceAddressLength );
-
-        if( lBytesSent != ulBytesToSend )
+        if( lBytesSent != ( ulBytesToSend + PACKET_HEADER_LENGTH ) )
         {
             configPRINTF( ("[ERROR] Failed to send response.\n" ) );
             ret = pdFAIL;

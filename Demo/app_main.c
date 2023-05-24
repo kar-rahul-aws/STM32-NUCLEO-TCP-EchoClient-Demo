@@ -58,13 +58,41 @@ extern UART_HandleTypeDef huart3;
 
 const uint8_t ucMACAddress[ 6 ] = { configMAC_ADDR0, configMAC_ADDR1, configMAC_ADDR2, configMAC_ADDR3, configMAC_ADDR4, configMAC_ADDR5 };
 
-static BaseType_t xTasksAlreadyCreated = pdFALSE;
-
 extern RNG_HandleTypeDef hrng;
 
 static char cInputCommandString[ configMAX_COMMAND_INPUT_SIZE + 1 ];
 
 static uint8_t ucUdpResponseBuffer[ mainMAX_UDP_RESPONSE_SIZE + PACKET_HEADER_LENGTH ];
+/*-----------------------------------------------------------*/
+
+/* Set the following constants to 1 or 0 to define which tasks to include and
+ * exclude:
+ *
+ * mainCREATE_SIMPLE_UDP_CLIENT_SERVER_TASKS:  When set to 1 two UDP client tasks
+ * and two UDP server tasks are created.  The clients talk to the servers.  One set
+ * of tasks use the standard sockets interface, and the other the zero copy sockets
+ * interface.  These tasks are self checking and will trigger a configASSERT() if
+ * they detect a difference in the data that is received from that which was sent.
+ * As these tasks use UDP, and can therefore loose packets, they will cause
+ * configASSERT() to be called when they are run in a less than perfect networking
+ * environment.
+ *
+ * mainCREATE_TCP_ECHO_TASKS_SINGLE:  When set to 1 a set of tasks are created that
+ * send TCP echo requests to the standard echo port (port 7), then wait for and
+ * verify the echo reply, from within the same task (Tx and Rx are performed in the
+ * same RTOS task).  The IP address of the echo server must be configured using the
+ * configECHO_SERVER_ADDR0 to configECHO_SERVER_ADDR3 constants in
+ * FreeRTOSConfig.h.
+ *
+ * mainCREATE_TCP_ECHO_SERVER_TASK:  When set to 1 a task is created that accepts
+ * connections on the standard echo port (port 7), then echos back any data
+ * received on that connection.
+ */
+#define mainCREATE_SIMPLE_UDP_CLIENT_SERVER_TASKS     0
+#define mainCREATE_TCP_ECHO_TASKS_SINGLE              0
+#define mainCREATE_TCP_ECHO_SERVER_TASK               1
+#define mainCREATE_CLI_TASK                           0
+
 /*-----------------------------------------------------------*/
 
 static void prvCliTask( void * pvParameters );
@@ -450,25 +478,49 @@ uint32_t ulApplicationGetNextSequenceNumber( uint32_t ulSourceAddress,
 
 void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 {
+    uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
+    char cBuffer[ 16 ];
+    static BaseType_t xTasksAlreadyCreated = pdFALSE;
+
     /* If the network has just come up...*/
     if( eNetworkEvent == eNetworkUp )
     {
-    uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
-    char cBuffer[ 16 ];
-
         /* Create the tasks that use the IP stack if they have not already been
          * created. */
         if( xTasksAlreadyCreated == pdFALSE )
         {
-            xTasksAlreadyCreated = pdTRUE;
 
-            /* Sockets, and tasks that use the TCP/IP stack can be created here. */
-            xTaskCreate( prvCliTask,
-                         "cli",
-                         mainCLI_TASK_STACK_SIZE,
-                         NULL,
-                         mainCLI_TASK_PRIORITY,
-                         NULL );
+            /* See the comments above the definitions of these pre-processor
+             * macros at the top of this file for a description of the individual
+             * demo tasks. */
+            #if ( mainCREATE_SIMPLE_UDP_CLIENT_SERVER_TASKS == 1 )
+                {
+                    vStartSimpleUDPClientServerTasks( configMINIMAL_STACK_SIZE, mainSIMPLE_UDP_CLIENT_SERVER_PORT, mainSIMPLE_UDP_CLIENT_SERVER_TASK_PRIORITY );
+                }
+            #endif /* mainCREATE_SIMPLE_UDP_CLIENT_SERVER_TASKS */
+
+            #if ( mainCREATE_TCP_ECHO_TASKS_SINGLE == 1 )
+                {
+                    vStartTCPEchoClientTasks_SingleTasks( mainECHO_CLIENT_TASK_STACK_SIZE, mainECHO_CLIENT_TASK_PRIORITY );
+                }
+            #endif /* mainCREATE_TCP_ECHO_TASKS_SINGLE */
+
+            #if ( mainCREATE_TCP_ECHO_SERVER_TASK == 1 )
+                {
+                    vStartSimpleTCPServerTasks( mainECHO_SERVER_TASK_STACK_SIZE, mainECHO_SERVER_TASK_PRIORITY );
+                }
+            #endif
+
+            #if ( mainCREATE_CLI_TASK == 1 )
+                xTaskCreate( prvCliTask,
+                            "cli",
+                            mainCLI_TASK_STACK_SIZE,
+                            NULL,
+                            mainCLI_TASK_PRIORITY,
+                            NULL );
+            #endif
+
+            xTasksAlreadyCreated = pdTRUE;
         }
 
         /* Print out the network configuration, which may have come from a DHCP
@@ -515,7 +567,7 @@ const char *pcApplicationHostnameHook( void )
 
 BaseType_t xApplicationGetRandomNumber( uint32_t *pulValue )
 {
-BaseType_t xReturn;
+    BaseType_t xReturn;
 
     if( HAL_RNG_GenerateRandomNumber( &hrng, pulValue ) == HAL_OK )
     {
@@ -528,6 +580,20 @@ BaseType_t xReturn;
 
     return xReturn;
 }
+
+/*-----------------------------------------------------------*/
+
+#if ( ( ipconfigUSE_TCP == 1 ) && ( ipconfigUSE_DHCP_HOOK != 0 ) )
+
+eDHCPCallbackAnswer_t xApplicationDHCPHook( eDHCPCallbackPhase_t eDHCPPhase,
+                                            uint32_t ulIPAddress )
+{
+    /* Provide a stub for this function. */
+    return eDHCPContinue;
+}
+
+#endif
+
 /*-----------------------------------------------------------*/
 
 void vPrintStringToUart( const char *str )

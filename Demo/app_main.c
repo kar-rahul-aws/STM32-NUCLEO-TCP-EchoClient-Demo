@@ -65,6 +65,22 @@ static char cInputCommandString[ configMAX_COMMAND_INPUT_SIZE + 1 ];
 static uint8_t ucUdpResponseBuffer[ mainMAX_UDP_RESPONSE_SIZE + PACKET_HEADER_LENGTH ];
 /*-----------------------------------------------------------*/
 
+/* Simple UDP client and server task parameters. */
+#define mainSIMPLE_UDP_CLIENT_SERVER_TASK_PRIORITY    ( tskIDLE_PRIORITY )
+#define mainSIMPLE_UDP_CLIENT_SERVER_PORT             ( 5005UL )
+
+/* Echo client task parameters - used for both TCP and UDP echo clients. */
+#define mainECHO_CLIENT_TASK_STACK_SIZE               ( configMINIMAL_STACK_SIZE * 2 )      /* Not used in the Windows port. */
+#define mainECHO_CLIENT_TASK_PRIORITY                 ( tskIDLE_PRIORITY + 1 )
+
+/* Echo server task parameters. */
+#define mainECHO_SERVER_TASK_STACK_SIZE               ( configMINIMAL_STACK_SIZE * 2 )      /* Not used in the Windows port. */
+#define mainECHO_SERVER_TASK_PRIORITY                 ( tskIDLE_PRIORITY + 1 )
+
+/* Define a name that will be used for LLMNR and NBNS searches. */
+#define mainHOST_NAME                                 "RTOSDemo"
+#define mainDEVICE_NICK_NAME                          "windows_demo"
+
 /* Set the following constants to 1 or 0 to define which tasks to include and
  * exclude:
  *

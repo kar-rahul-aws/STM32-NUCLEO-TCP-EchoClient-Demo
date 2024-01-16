@@ -378,6 +378,9 @@ extern void pcap_capture_record_packet( const uint8_t * p_packet,
 #define iptraceNETWORK_INTERFACE_RECEIVE() \
     pcap_capture_record_packet( pxReceivedBuffer->pucEthernetBuffer, pxReceivedBuffer->xDataLength )
 
+/* netstat related config. */
+#include "netstat_capture.h"
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

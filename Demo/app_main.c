@@ -25,6 +25,9 @@
 /* Trace includes */
 #include "freertos_barectf_tracer_platform_in_mem.h"
 
+/* Exception info. */
+#include "expinfo.h"
+
 /* Demo definitions. */
 #define mainCLI_TASK_STACK_SIZE             512
 #define mainCLI_TASK_PRIORITY               tskIDLE_PRIORITY
@@ -615,4 +618,21 @@ static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
      * configMINIMAL_STACK_SIZE is specified in words, not bytes. */
     *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
+/*-----------------------------------------------------------*/
+
+void vAssertCalled( const char * pcFile,
+                    uint32_t ulLine )
+{
+    taskDISABLE_INTERRUPTS();
+
+    configPRINTF( ( "vAssertCalled( %s, %u )\r\n", pcFile, ulLine ) );
+
+    configPRINTF( ( "ExpInfo store information\r\n" ) );
+    ExpInfo_CleanInfo();
+    ExpInfo_StoreInfo();
+
+    printf( "Reboot the device\r\n" );
+    NVIC_SystemReset();
+}
+
 /*-----------------------------------------------------------*/

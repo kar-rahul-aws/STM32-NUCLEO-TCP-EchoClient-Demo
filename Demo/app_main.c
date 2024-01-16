@@ -631,7 +631,7 @@ void vAssertCalled( const char * pcFile,
     ExpInfo_CleanInfo();
     ExpInfo_StoreInfo();
 
-    printf( "Reboot the device\r\n" );
+    configPRINTF( ( "Reboot the device\r\n" ) );
     NVIC_SystemReset();
 }
 

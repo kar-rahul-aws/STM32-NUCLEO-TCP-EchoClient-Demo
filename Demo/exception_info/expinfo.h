@@ -12,6 +12,8 @@ typedef enum ExpInfoUploadMethod
 {
     EXP_INFO_UPLOAD_UART,
     EXP_INFO_UPLOAD_UDP,
+    EXP_INFO_UPLOAD_S3,
+    EXP_INFO_UPLOAD_MQTT,
     EXP_INFO_UPLOAD_MAX
 } ExpInfoUploadMethod_t;
 

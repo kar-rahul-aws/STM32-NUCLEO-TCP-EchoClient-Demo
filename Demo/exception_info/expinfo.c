@@ -16,6 +16,7 @@ typedef struct MemoryRegion
 {
     uint32_t uxOffset;
     uint32_t uxLength;
+    uint32_t uxAddress;
 } MemoryRegion_t;
 
 
@@ -66,12 +67,15 @@ BaseType_t ExpInfo_StoreInfo( void )
     gExceptionInfo.xMemoryRegions[ 0 ].uxOffset = PLATFORM_ROUND_SIZE( sizeof( ExceptionInfo_t ) ) +
                                                   PLATFORM_ROUND_SIZE( sizeof( CoreReg_t ) );
     gExceptionInfo.xMemoryRegions[ 0 ].uxLength = ( uint32_t )( &_edata - &_sdata );
+    gExceptionInfo.xMemoryRegions[ 0 ].uxAddress = ( uint32_t )( &_sdata );
 
     /* .bss section. */
     gExceptionInfo.xMemoryRegions[ 1 ].uxOffset = PLATFORM_ROUND_SIZE( sizeof( ExceptionInfo_t ) ) +
                                                   PLATFORM_ROUND_SIZE( sizeof( CoreReg_t ) ) +
                                                   PLATFORM_ROUND_SIZE( ( uint32_t )( &_edata - &_sdata ) );
     gExceptionInfo.xMemoryRegions[ 1 ].uxLength = ( uint32_t )( &_ebss - &_sbss );
+    gExceptionInfo.xMemoryRegions[ 1 ].uxAddress = ( uint32_t )( &_sbss );
+
     uxRetMedia = PLATFORM_WRITE_MEDIA( PLATFORM_EXCEPTION_INFO_START_ADDRESS, ( uint32_t * )&gExceptionInfo, sizeof( gExceptionInfo ), &uxNextFlashAddress );
 
     /* Store the registers. */
@@ -104,7 +108,7 @@ BaseType_t ExpInfo_StoreInfo( void )
 
 void ExpInfo_CleanInfo( void )
 {
-    /* Erase the whole bank of APPLICATION_ADDRESS start from sector 0. */
+    /* Erase the whole bank of PLATFORM_EXCEPTION_INFO_START_ADDRESS start from sector 0. */
     PLATFORM_EXCEPTION_INFO_CLEAN();
 }
 /*-----------------------------------------------------------*/
@@ -112,8 +116,8 @@ void ExpInfo_CleanInfo( void )
 BaseType_t ExpInfo_InfoExist( void )
 {
     BaseType_t xReturn = pdTRUE;
-    ExceptionInfo_t * pExceptionInfo = ( ExceptionInfo_t * )( APPLICATION_ADDRESS );
-    uint32_t * puxImagePtr = ( uint32_t *  )( APPLICATION_ADDRESS );
+    ExceptionInfo_t * pExceptionInfo = ( ExceptionInfo_t * )( PLATFORM_EXCEPTION_INFO_START_ADDRESS );
+    uint32_t * puxImagePtr = ( uint32_t *  )( PLATFORM_EXCEPTION_INFO_START_ADDRESS );
 
     /* Check the start magic number of the sector. */
     if( pExceptionInfo->uxFileExistMagic != FLASH_USER_FILE_EXIST_MAGIC )
@@ -124,7 +128,7 @@ BaseType_t ExpInfo_InfoExist( void )
     /* Check the end magic number of the sector. */
     if( xReturn != pdFALSE )
     {
-        if( puxImagePtr[ pExceptionInfo->uxTotalLength - 4 ] != FLASH_USER_FILE_EXIST_MAGIC )
+        if( puxImagePtr[ ( pExceptionInfo->uxTotalLength / 4 ) - 1 ] != FLASH_USER_FILE_EXIST_MAGIC )
         {
             xReturn = pdFALSE;
         }

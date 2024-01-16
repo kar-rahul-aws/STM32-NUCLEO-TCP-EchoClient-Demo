@@ -33,6 +33,14 @@ BaseType_t ExpInfo_StoreInfo( void );
 BaseType_t ExpInfo_UploadInfo( ExpInfoUploadMethod_t uploadMethod );
 
 /**
+ * @brief  Get the exception information.
+ * @param  pxInfoStart: Exception info start.
+ * @param  pxInfoLength: Exception info length.
+ * @retval pdFALSE : Get exception information failed.
+ */
+BaseType_t ExpInfo_GetInfo( uint32_t * pxInfoStart, uint32_t * pxInfoLength );
+
+/**
  * @brief  Clean the exception information. After this commmand, ExpInfo_InfoExist()
  * should return false.
  */

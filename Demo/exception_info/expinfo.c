@@ -19,15 +19,14 @@ typedef struct MemoryRegion
     uint32_t uxAddress;
 } MemoryRegion_t;
 
-
 typedef struct ExceptionInfo
 {
     uint32_t uxFileExistMagic;
     uint32_t uxTotalLength;
-    
+
     uint32_t uxRegDumpOffset;
     uint32_t uxRegDumpLength;
-    
+
     uint32_t uxMemoryRegionNum;
     MemoryRegion_t xMemoryRegions[ EXCEPTION_INFO_MEMORY_REGIONS ];
 } ExceptionInfo_t;
@@ -131,6 +130,29 @@ BaseType_t ExpInfo_InfoExist( void )
         if( puxImagePtr[ ( pExceptionInfo->uxTotalLength / 4 ) - 1 ] != FLASH_USER_FILE_EXIST_MAGIC )
         {
             xReturn = pdFALSE;
+        }
+    }
+
+    return xReturn;
+}
+/*-----------------------------------------------------------*/
+
+BaseType_t ExpInfo_GetInfo( uint32_t * pxInfoStart, uint32_t * pxInfoLength )
+{
+    BaseType_t xReturn;
+    ExceptionInfo_t * pExceptionInfo = ( ExceptionInfo_t * )( PLATFORM_EXCEPTION_INFO_START_ADDRESS );
+
+    if( ( pxInfoStart == NULL ) || ( pxInfoLength == NULL ) )
+    {
+        xReturn = pdFALSE;
+    }
+    else
+    {
+        xReturn = ExpInfo_InfoExist();
+        if( xReturn == pdTRUE )
+        {
+            *pxInfoStart = ( uint32_t )PLATFORM_EXCEPTION_INFO_START_ADDRESS;
+            *pxInfoLength = pExceptionInfo->uxTotalLength;
         }
     }
 

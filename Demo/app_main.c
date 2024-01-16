@@ -232,6 +232,24 @@ static void prvCliTask( void *pvParameters )
                                                             pucTraceCapture,
                                                             ulTraceCaptureLength );
                 }
+                else if( strncmp( pcOutputBuffer, "EXCEPTION-DUMP", ulResponseLength ) == 0 )
+                {
+                    const uint8_t * pucDumpAddress;
+                    uint32_t ulDumpLength;
+
+                    /* Get dump address/length. */
+                    if( ExpInfo_GetInfo( &pucDumpAddress, &ulDumpLength ) != pdFALSE )
+                    {
+                        /* Send dump address/length to host. */
+                        xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                                &( xSourceAddress ),
+                                                                xSourceAddressLength,
+                                                                &( ucPacketNumber ),
+                                                                &( ucRequestId [ 0 ] ),
+                                                                pucDumpAddress,
+                                                                ulDumpLength );
+                    }
+                }
                 else
                 {
                     /* Send the command response. */
@@ -278,12 +296,14 @@ extern void vRegisterPcapCommand( void );
 extern void vRegisterNetStatCommand( void );
 extern void vRegisterTopCommand( void );
 extern void vRegisterTraceCommand( void );
+extern void vRegisterExceptionCommand( void );
 
     vRegisterPingCommand();
     vRegisterPcapCommand();
     vRegisterNetStatCommand();
     vRegisterTopCommand();
     vRegisterTraceCommand();
+    vRegisterExceptionCommand();
 }
 /*-----------------------------------------------------------*/
 

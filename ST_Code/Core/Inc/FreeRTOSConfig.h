@@ -239,7 +239,4 @@ extern uint32_t ulGetTim7Tick( void );
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()
 #define portGET_RUN_TIME_COUNTER_VALUE()        ulGetTim7Tick()
 
-/* Trace related configuration. */
-#include "freertos_barectf_tracer.h"
-
 #endif /* FREERTOS_CONFIG_H */

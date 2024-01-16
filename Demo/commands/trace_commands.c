@@ -11,31 +11,6 @@
 /* FreeRTOS+CLI includes. */
 #include "FreeRTOS_CLI.h"
 
-/* Tracer includes. */
-#include "freertos_barectf_tracer.h"
-#include "freertos_barectf_tracer_platform_in_mem.h"
-
-#define TRACE_BUFFER_LENGTH             ( 1024 )
-#define TRACE_CAPTURE_BUFFER_LENGTH     ( 5 * 1024 )
-
-/*-----------------------------------------------------------*/
-
-static FreeRTOSBarectfTracer_PlatformInMemContext_t platformContext;
-
-static uint8_t ucTraceBuffer[ TRACE_BUFFER_LENGTH ];
-static uint8_t ucTraceCaptureBuffer[ TRACE_CAPTURE_BUFFER_LENGTH ];
-
-/*-----------------------------------------------------------*/
-
-static uint64_t getClock( void * param )
-{
-    extern uint32_t ulGetTim7Tick( void );
-
-    ( void ) param;
-
-    return ( uint64_t )ulGetTim7Tick();
-}
-
 /*-----------------------------------------------------------*/
 
 /**
@@ -54,23 +29,10 @@ static portBASE_TYPE prvTraceCommandInterpreter( char *pcWriteBuffer, size_t xWr
     {
         if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
         {
-            FreeRTOSBarectfTracer_PlatformInMemInit( &( platformContext ),
-                                                     ucTraceBuffer,
-                                                     TRACE_BUFFER_LENGTH,
-                                                     getClock,
-                                                     ucTraceCaptureBuffer,
-                                                     TRACE_CAPTURE_BUFFER_LENGTH );
-
-            FreeRTOSBarectfTracer_Init( &( platformContext.barectfContext ) );
-
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
         else if( strncmp( pcCommandParameter, "stop", xCommandParameterLength ) == 0 )
         {
-            FreeRTOSBarectfTracer_DeInit();
-
-            FreeRTOSBarectfTracer_PlatformInMemDeInit( &( platformContext ) );
-
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
         else if( strncmp( pcCommandParameter, "get", xCommandParameterLength ) == 0 )
@@ -118,11 +80,3 @@ void vRegisterTraceCommand( void )
 
 /*-----------------------------------------------------------*/
 
-void  FreeRTOSBarectfTracer_GetTrace( const uint8_t ** ppucCapturedTrace,
-                                      uint32_t * pulCapturedTraceLength )
-{
-    *ppucCapturedTrace = platformContext.pTraceCaptureBuf;
-    *pulCapturedTraceLength = ( platformContext.traceCaptureBufLength - platformContext.remainingLength );
-}
-
-/*-----------------------------------------------------------*/

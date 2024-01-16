@@ -43,12 +43,30 @@
 	</linkedResources>
 	<filteredResources>
 		<filter>
-			<id>1673930340815</id>
+			<id>1705416818011</id>
 			<name>Libraries/FreeRTOS-Kernel</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
 				<arguments>1.0-name-matches-false-false-*.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1705416818015</id>
+			<name>Libraries/FreeRTOS-Kernel</name>
+			<type>9</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-include</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1705416818020</id>
+			<name>Libraries/FreeRTOS-Kernel</name>
+			<type>9</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-portable</arguments>
 			</matcher>
 		</filter>
 		<filter>
@@ -67,15 +85,6 @@
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
 				<arguments>1.0-name-matches-false-false-*</arguments>
-			</matcher>
-		</filter>
-		<filter>
-			<id>1674212785791</id>
-			<name>Demo/tracer/platform</name>
-			<type>9</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-InMemory</arguments>
 			</matcher>
 		</filter>
 		<filter>

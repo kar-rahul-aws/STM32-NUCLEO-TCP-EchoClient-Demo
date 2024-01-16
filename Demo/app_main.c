@@ -22,9 +22,6 @@
 /* Pcap capture includes. */
 #include "pcap_capture.h"
 
-/* Trace includes */
-#include "freertos_barectf_tracer_platform_in_mem.h"
-
 /* Demo definitions. */
 #define mainCLI_TASK_STACK_SIZE             512
 #define mainCLI_TASK_PRIORITY               tskIDLE_PRIORITY
@@ -65,6 +62,10 @@ extern RNG_HandleTypeDef hrng;
 static char cInputCommandString[ configMAX_COMMAND_INPUT_SIZE + 1 ];
 
 static uint8_t ucUdpResponseBuffer[ mainMAX_UDP_RESPONSE_SIZE + PACKET_HEADER_LENGTH ];
+
+static NetworkInterface_t xInterfaces[ 1 ];
+
+static NetworkEndPoint_t xEndPoints[ 1 ];
 /*-----------------------------------------------------------*/
 
 static void prvCliTask( void * pvParameters );
@@ -109,8 +110,19 @@ void app_main( void )
                                    mainLOGGING_QUEUE_LENGTH );
     configASSERT( xRet == pdPASS );
 
-    configPRINTF( ( "Calling FreeRTOS_IPInit...\n" ) );
-    FreeRTOS_IPInit( ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, ucMACAddress );
+    extern NetworkInterface_t * pxSTM32H_FillInterfaceDescriptor( BaseType_t xEMACIndex,
+                                                                  NetworkInterface_t * pxInterface );
+    pxSTM32H_FillInterfaceDescriptor( 0, &( xInterfaces[ 0 ] ) );
+    FreeRTOS_FillEndPoint( &( xInterfaces[ 0 ] ),
+                           &( xEndPoints[ 0 ] ),
+                           ucIPAddress,
+                           ucNetMask,
+                           ucGatewayAddress,
+                           ucDNSServerAddress,
+                           ucMACAddress );
+    xEndPoints[ 0 ].bits.bWantDHCP = pdTRUE;
+    memcpy( ipLOCAL_MAC_ADDRESS, ucMACAddress, sizeof( ucMACAddress ) );
+    FreeRTOS_IPInit_Multi();
 
     /* Start the RTOS scheduler. */
     vTaskStartScheduler();
@@ -148,7 +160,8 @@ static void prvCliTask( void *pvParameters )
                          sizeof( TickType_t ) );
 
     xServerAddress.sin_port = FreeRTOS_htons( configCLI_SERVER_PORT );
-    xServerAddress.sin_addr = FreeRTOS_GetIPAddress();
+    xServerAddress.sin_family = FREERTOS_AF_INET;
+    xServerAddress.sin_address.ulIP_IPv4 = FreeRTOS_GetIPAddress();
     FreeRTOS_bind( xCLIServerSocket, &( xServerAddress ), sizeof( xServerAddress ) );
 
     configPRINTF( ( "Waiting for requests...\n" ) );
@@ -173,7 +186,7 @@ static void prvCliTask( void *pvParameters )
         {
             uint8_t ucPacketNumber = 1;
 
-            configPRINTF( ( "Received command. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_addr,
+            configPRINTF( ( "Received command. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_address.ulIP_IPv4,
                                                                              xSourceAddress.sin_port,
                                                                              &( cInputCommandString[ PACKET_HEADER_LENGTH ] ) ) );
 
@@ -213,22 +226,22 @@ static void prvCliTask( void *pvParameters )
                      * after this point. */
                     pcap_capture_reset();
                 }
-                else if( strncmp( pcOutputBuffer, "TRACE-GET", ulResponseLength ) == 0 )
-                {
-                    const uint8_t * pucTraceCapture;
-                    uint32_t ulTraceCaptureLength;
+                // else if( strncmp( pcOutputBuffer, "TRACE-GET", ulResponseLength ) == 0 )
+                // {
+                //     const uint8_t * pucTraceCapture;
+                //     uint32_t ulTraceCaptureLength;
 
-                    FreeRTOSBarectfTracer_GetTrace( &( pucTraceCapture ),
-                                                    &( ulTraceCaptureLength) );
+                //     FreeRTOSBarectfTracer_GetTrace( &( pucTraceCapture ),
+                //                                     &( ulTraceCaptureLength) );
 
-                    xResponseSent = prvSendCommandResponse( xCLIServerSocket,
-                                                            &( xSourceAddress ),
-                                                            xSourceAddressLength,
-                                                            &( ucPacketNumber ),
-                                                            &( ucRequestId [ 0 ] ),
-                                                            pucTraceCapture,
-                                                            ulTraceCaptureLength );
-                }
+                //     xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                //                                             &( xSourceAddress ),
+                //                                             xSourceAddressLength,
+                //                                             &( ucPacketNumber ),
+                //                                             &( ucRequestId [ 0 ] ),
+                //                                             pucTraceCapture,
+                //                                             ulTraceCaptureLength );
+                // }
                 else
                 {
                     /* Send the command response. */
@@ -260,7 +273,7 @@ static void prvCliTask( void *pvParameters )
         }
         else
         {
-            configPRINTF( ( "[ERROR] Malformed request. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_addr,
+            configPRINTF( ( "[ERROR] Malformed request. IP:%x Port:%u Content:%s \n", xSourceAddress.sin_address.ulIP_IPv4,
                                                                                       xSourceAddress.sin_port,
                                                                                       cInputCommandString ) );
         }
@@ -448,7 +461,8 @@ uint32_t ulApplicationGetNextSequenceNumber( uint32_t ulSourceAddress,
 }
 /*-----------------------------------------------------------*/
 
-void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
+void vApplicationIPNetworkEventHook_Multi( eIPCallbackEvent_t eNetworkEvent,
+                                           struct xNetworkEndPoint * pxEndPoint )
 {
     /* If the network has just come up...*/
     if( eNetworkEvent == eNetworkUp )
@@ -473,7 +487,11 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 
         /* Print out the network configuration, which may have come from a DHCP
          * server. */
-        FreeRTOS_GetAddressConfiguration( &ulIPAddress, &ulNetMask, &ulGatewayAddress, &ulDNSServerAddress );
+        FreeRTOS_GetEndPointConfiguration( &ulIPAddress,
+                                           &ulNetMask,
+                                           &ulGatewayAddress,
+                                           &ulDNSServerAddress,
+                                           pxEndPoint );
         FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
         configPRINTF( ( "IP Address: %s\n", cBuffer ) );
 
@@ -489,9 +507,12 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 }
 /*-----------------------------------------------------------*/
 
-BaseType_t xApplicationDNSQueryHook( const char *pcName )
+BaseType_t xApplicationDNSQueryHook_Multi( struct xNetworkEndPoint * pxEndPoint,
+                                           const char * pcName )
 {
     BaseType_t xReturn = pdFAIL;
+
+    ( void ) pxEndPoint;
 
     /* Determine if a name lookup is for this node.  Two names are given
      * to this node: that returned by pcApplicationHostnameHook() and that set

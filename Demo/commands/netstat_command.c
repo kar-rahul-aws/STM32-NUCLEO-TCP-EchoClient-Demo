@@ -15,46 +15,48 @@
 #include "netstat_capture.h"
 
 /*FreeRTOS+TCP includes.*/
-#include "FreeRTOS_Net_Stat.h"
+//#include "FreeRTOS_Net_Stat.h"
 
 /**
  * @brief Interpreter that handles the netstat command.
  */
 static portBASE_TYPE prvNetStatCommandInterpreter( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
 {
-    allstat all_network_stats;
-    eErrorType_t xResult = eIncorrectStat;
+    // allstat all_network_stats;
+    // eErrorType_t xResult = eIncorrectStat;
 
     ( void ) pcCommandString;
 
     configASSERT( pcWriteBuffer );
 
-    xResult = vGetNetStat( eGetStat, &( all_network_stats ) );
-    configASSERT( xResult == eSuccessStat );
+    // xResult = vGetNetStat( eGetStat, &( all_network_stats ) );
+    // configASSERT( xResult == eSuccessStat );
 
-    snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%lu,%lu,%lu,%lu",
-                                               all_network_stats.udp_stat.stat.pckt_rx,
-                                               all_network_stats.udp_stat.stat.pckt_tx,
-                                               all_network_stats.udp_stat.stat.pcket_drop_rx,
-                                               all_network_stats.udp_stat.stat.pcket_drop_tx,
-                                               all_network_stats.udp_stat.stat.bytes_rx,
-                                               all_network_stats.udp_stat.stat.bytes_tx,
-                                               all_network_stats.tcp_stat.stat.pckt_rx,
-                                               all_network_stats.tcp_stat.stat.pckt_tx,
-                                               all_network_stats.tcp_stat.stat.pcket_drop_rx,
-                                               all_network_stats.tcp_stat.stat.pcket_drop_tx,
-                                               all_network_stats.tcp_stat.stat.bytes_rx,
-                                               all_network_stats.tcp_stat.stat.bytes_tx,
-                                               all_network_stats.icmp_stat.stat.pckt_rx,
-                                               all_network_stats.icmp_stat.stat.pckt_tx,
-                                               all_network_stats.icmp_stat.stat.pcket_drop_rx,
-                                               all_network_stats.icmp_stat.stat.pcket_drop_tx,
-                                               all_network_stats.icmp_stat.stat.bytes_rx,
-                                               all_network_stats.icmp_stat.stat.bytes_tx,
-                                               ( uint32_t )( ( all_network_stats.rx_latency >> 32 ) & 0xFFFFFFFF ),
-                                               ( uint32_t )( ( all_network_stats.rx_latency ) & 0xFFFFFFFF ),
-                                               ( uint32_t )( ( all_network_stats.tx_latency >> 32 ) & 0xFFFFFFFF ),
-                                               ( uint32_t )( ( all_network_stats.tx_latency ) & 0xFFFFFFFF ) );
+    // snprintf( pcWriteBuffer, xWriteBufferLen, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%lu,%lu,%lu,%lu",
+    //                                            all_network_stats.udp_stat.stat.pckt_rx,
+    //                                            all_network_stats.udp_stat.stat.pckt_tx,
+    //                                            all_network_stats.udp_stat.stat.pcket_drop_rx,
+    //                                            all_network_stats.udp_stat.stat.pcket_drop_tx,
+    //                                            all_network_stats.udp_stat.stat.bytes_rx,
+    //                                            all_network_stats.udp_stat.stat.bytes_tx,
+    //                                            all_network_stats.tcp_stat.stat.pckt_rx,
+    //                                            all_network_stats.tcp_stat.stat.pckt_tx,
+    //                                            all_network_stats.tcp_stat.stat.pcket_drop_rx,
+    //                                            all_network_stats.tcp_stat.stat.pcket_drop_tx,
+    //                                            all_network_stats.tcp_stat.stat.bytes_rx,
+    //                                            all_network_stats.tcp_stat.stat.bytes_tx,
+    //                                            all_network_stats.icmp_stat.stat.pckt_rx,
+    //                                            all_network_stats.icmp_stat.stat.pckt_tx,
+    //                                            all_network_stats.icmp_stat.stat.pcket_drop_rx,
+    //                                            all_network_stats.icmp_stat.stat.pcket_drop_tx,
+    //                                            all_network_stats.icmp_stat.stat.bytes_rx,
+    //                                            all_network_stats.icmp_stat.stat.bytes_tx,
+    //                                            ( uint32_t )( ( all_network_stats.rx_latency >> 32 ) & 0xFFFFFFFF ),
+    //                                            ( uint32_t )( ( all_network_stats.rx_latency ) & 0xFFFFFFFF ),
+    //                                            ( uint32_t )( ( all_network_stats.tx_latency >> 32 ) & 0xFFFFFFFF ),
+    //                                            ( uint32_t )( ( all_network_stats.tx_latency ) & 0xFFFFFFFF ) );
+
+    snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
 
     /* Return pdFALSE to indicate that the response is complete. */
     return pdFALSE;

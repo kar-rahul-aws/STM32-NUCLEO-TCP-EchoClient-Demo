@@ -71,7 +71,6 @@
 #define configMINIMAL_STACK_SIZE                  ( ( uint16_t )128 )
 #define configTOTAL_HEAP_SIZE                     ( ( size_t )( 128 * 1024 ) )
 #define configMAX_TASK_NAME_LEN                   ( 16 )
-#define configUSE_TRACE_FACILITY                  1
 #define configUSE_16_BIT_TICKS                    0
 #define configUSE_MUTEXES                         1
 #define configQUEUE_REGISTRY_SIZE                 8
@@ -238,5 +237,11 @@ extern uint32_t ulGetTim7Tick( void );
 #define configUSE_STATS_FORMATTING_FUNCTIONS    1
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()
 #define portGET_RUN_TIME_COUNTER_VALUE()        ulGetTim7Tick()
+
+/* Trace related configs. */
+#define configUSE_TRACE_FACILITY                1
+#define configTD_LOGGER_BUFFER_SIZE             1024
+#define FREERTOS_TD_GET_TIME()                  ulGetTim7Tick()
+#include "FreeRTOS_TD_Logger.h"
 
 #endif /* FREERTOS_CONFIG_H */

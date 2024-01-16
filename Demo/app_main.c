@@ -22,6 +22,9 @@
 /* Pcap capture includes. */
 #include "pcap_capture.h"
 
+/* FreeRTOS-tdlogger includes. */
+#include "FreeRTOS_TD_Logger.h"
+
 /* Demo definitions. */
 #define mainCLI_TASK_STACK_SIZE             512
 #define mainCLI_TASK_PRIORITY               tskIDLE_PRIORITY
@@ -226,22 +229,26 @@ static void prvCliTask( void *pvParameters )
                      * after this point. */
                     pcap_capture_reset();
                 }
-                // else if( strncmp( pcOutputBuffer, "TRACE-GET", ulResponseLength ) == 0 )
-                // {
-                //     const uint8_t * pucTraceCapture;
-                //     uint32_t ulTraceCaptureLength;
+                else if( strncmp( pcOutputBuffer, "TRACE-GET", ulResponseLength ) == 0 )
+                {
+                    const uint8_t * pucTraceCapture;
+                    size_t xTraceCaptureLength;
 
-                //     FreeRTOSBarectfTracer_GetTrace( &( pucTraceCapture ),
-                //                                     &( ulTraceCaptureLength) );
+                    FreeRTOS_TD_Logger_GetTrace( &( pucTraceCapture ),
+                                                 &( xTraceCaptureLength) );
 
-                //     xResponseSent = prvSendCommandResponse( xCLIServerSocket,
-                //                                             &( xSourceAddress ),
-                //                                             xSourceAddressLength,
-                //                                             &( ucPacketNumber ),
-                //                                             &( ucRequestId [ 0 ] ),
-                //                                             pucTraceCapture,
-                //                                             ulTraceCaptureLength );
-                // }
+                    xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                            &( xSourceAddress ),
+                                                            xSourceAddressLength,
+                                                            &( ucPacketNumber ),
+                                                            &( ucRequestId [ 0 ] ),
+                                                            pucTraceCapture,
+                                                            xTraceCaptureLength );
+
+                    /* Next fetch should not include this trace but the trace
+                     * after this point. */
+                    FreeRTOS_TD_Logger_Reset();
+                }
                 else
                 {
                     /* Send the command response. */

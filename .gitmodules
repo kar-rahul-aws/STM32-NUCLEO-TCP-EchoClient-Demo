@@ -4,3 +4,6 @@
 [submodule "FreeRTOS-Plus-TCP"]
 	path = Libraries/FreeRTOS-Plus-TCP
 	url = https://github.com/FreeRTOS/FreeRTOS-Plus-TCP.git
+[submodule ".\\Libraries\\FreeRTOS-tdlogger"]
+	path = .\\Libraries\\FreeRTOS-tdlogger
+	url = https://github.com/aggarg/FreeRTOS-tdlogger.git

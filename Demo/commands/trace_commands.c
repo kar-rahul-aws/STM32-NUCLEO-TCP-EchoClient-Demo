@@ -11,6 +11,8 @@
 /* FreeRTOS+CLI includes. */
 #include "FreeRTOS_CLI.h"
 
+/* FreeRTOS-tdlogger includes. */
+#include "FreeRTOS_TD_Logger.h"
 /*-----------------------------------------------------------*/
 
 /**
@@ -29,10 +31,14 @@ static portBASE_TYPE prvTraceCommandInterpreter( char *pcWriteBuffer, size_t xWr
     {
         if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
         {
+            FreeRTOS_TD_Logger_Start();
+
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
         else if( strncmp( pcCommandParameter, "stop", xCommandParameterLength ) == 0 )
         {
+            FreeRTOS_TD_Logger_Stop();
+
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
         else if( strncmp( pcCommandParameter, "get", xCommandParameterLength ) == 0 )

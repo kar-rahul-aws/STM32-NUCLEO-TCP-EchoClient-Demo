@@ -25,6 +25,9 @@
 /* FreeRTOS-tdlogger includes. */
 #include "FreeRTOS_TD_Logger.h"
 
+/* Exception info. */
+#include "expinfo.h"
+
 /* Demo definitions. */
 #define mainCLI_TASK_STACK_SIZE             512
 #define mainCLI_TASK_PRIORITY               tskIDLE_PRIORITY
@@ -249,6 +252,24 @@ static void prvCliTask( void *pvParameters )
                      * after this point. */
                     FreeRTOS_TD_Logger_Reset();
                 }
+                else if( strncmp( pcOutputBuffer, "COREDUMP-GET", ulResponseLength ) == 0 )
+                {
+                    const uint8_t * pucDumpAddress;
+                    uint32_t ulDumpLength;
+
+                    /* Get dump address/length. */
+                    if( ExpInfo_GetInfo( &pucDumpAddress, &ulDumpLength ) != pdFALSE )
+                    {
+                        /* Send dump address/length to host. */
+                        xResponseSent = prvSendCommandResponse( xCLIServerSocket,
+                                                                &( xSourceAddress ),
+                                                                xSourceAddressLength,
+                                                                &( ucPacketNumber ),
+                                                                &( ucRequestId [ 0 ] ),
+                                                                pucDumpAddress,
+                                                                ulDumpLength );
+                    }
+                }
                 else
                 {
                     /* Send the command response. */
@@ -295,6 +316,7 @@ extern void vRegisterPcapCommand( void );
 extern void vRegisterNetStatCommand( void );
 extern void vRegisterTopCommand( void );
 extern void vRegisterTraceCommand( void );
+extern void vRegisterExceptionCommand( void );
 extern void vRegisterFirewallCommands( void );
 
     vRegisterPingCommand();
@@ -302,12 +324,13 @@ extern void vRegisterFirewallCommands( void );
     vRegisterNetStatCommand();
     vRegisterTopCommand();
     vRegisterTraceCommand();
-    
-    /* Add the following Firewall Commands 
-    
+    vRegisterExceptionCommand();
+
+    /* Add the following Firewall Commands
+
     firewall-add <rule>
     Example: send firewall-add 192.168.2.124 * * * 17 0
-    
+
     firewall-list
     Example: send firewall-list
 
@@ -657,4 +680,22 @@ static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
      * configMINIMAL_STACK_SIZE is specified in words, not bytes. */
     *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
+/*-----------------------------------------------------------*/
+
+void vAssertCalled( const char * pcFile,
+                    uint32_t ulLine )
+{
+    taskDISABLE_INTERRUPTS();
+
+    configPRINTF( ( "vAssertCalled( %s, %u ).\r\n", pcFile, ulLine ) );
+    configPRINTF( ( "ExpInfo store information.\r\n" ) );
+
+    ExpInfo_CleanInfo();
+    ExpInfo_StoreInfo();
+
+    configPRINTF( ( "Reboot the device.\r\n" ) );
+
+    NVIC_SystemReset();
+}
+
 /*-----------------------------------------------------------*/

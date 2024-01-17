@@ -5,6 +5,9 @@
 	path = Libraries/FreeRTOS-Plus-TCP
 	url = https://github.com/tony-josi-aws/FreeRTOS-Plus-TCP.git
 	branch = hackathon_add_basic_firewall
-[submodule ".FreeRTOS-tdlogger"]
+[submodule "FreeRTOS-tdlogger"]
 	path = Libraries/FreeRTOS-tdlogger
 	url = https://github.com/aggarg/FreeRTOS-tdlogger.git
+[submodule "FreeRTOS-pcap"]
+	path = Libraries/FreeRTOS-pcap
+	url = https://github.com/aggarg/FreeRTOS-pcap.git

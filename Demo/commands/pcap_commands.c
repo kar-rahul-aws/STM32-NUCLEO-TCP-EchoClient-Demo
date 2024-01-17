@@ -30,13 +30,12 @@ static portBASE_TYPE prvPcapCommandInterpreter( char *pcWriteBuffer, size_t xWri
     {
         if( strncmp( pcCommandParameter, "start", xCommandParameterLength ) == 0 )
         {
-            pcap_capture_reset();
-            pcap_capture_start();
+            PcapCapture_Start();
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
         else if( strncmp( pcCommandParameter, "stop", xCommandParameterLength ) == 0 )
         {
-            pcap_capture_stop();
+            PcapCapture_Stop();
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
         else if( strncmp( pcCommandParameter, "get", xCommandParameterLength ) == 0 )

@@ -215,10 +215,10 @@ static void prvCliTask( void *pvParameters )
                 if( strncmp( pcOutputBuffer, "PCAP-GET", ulResponseLength ) == 0 )
                 {
                     const uint8_t * pucPcapData;
-                    uint32_t ulPcapDataLength;
+                    size_t uxPcapDataLength;
 
-                    pcap_capture_get_captured_data( &( pucPcapData ),
-                                                    &( ulPcapDataLength) );
+                    PcapCapture_GetCapturedData( &( pucPcapData ),
+                                                 &( uxPcapDataLength) );
 
                     xResponseSent = prvSendCommandResponse( xCLIServerSocket,
                                                             &( xSourceAddress ),
@@ -226,11 +226,11 @@ static void prvCliTask( void *pvParameters )
                                                             &( ucPacketNumber ),
                                                             &( ucRequestId [ 0 ] ),
                                                             pucPcapData,
-                                                            ulPcapDataLength );
+                                                            uxPcapDataLength );
 
                     /* Next fetch should not get the same capture but the capture
                      * after this point. */
-                    pcap_capture_reset();
+                    PcapCapture_Reset();
                 }
                 else if( strncmp( pcOutputBuffer, "TRACE-GET", ulResponseLength ) == 0 )
                 {

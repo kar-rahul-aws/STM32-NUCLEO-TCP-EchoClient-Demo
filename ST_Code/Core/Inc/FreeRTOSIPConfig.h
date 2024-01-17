@@ -368,18 +368,15 @@ messages. */
 
 #define ipconfigTCP_MEM_STATS_MAX_ALLOCATION            64
 
-/* Trace related configs. */
-extern void pcap_capture_record_packet( const uint8_t * p_packet,
-                                        uint32_t packet_length );
-
-#define iptraceNETWORK_INTERFACE_OUTPUT( packet_length, packet ) \
-    pcap_capture_record_packet( packet, packet_length )
-
-#define iptraceNETWORK_INTERFACE_RECEIVE() \
-    pcap_capture_record_packet( pxReceivedBuffer->pucEthernetBuffer, pxReceivedBuffer->xDataLength )
-
 /* netstat related config. */
 #include "netstat_capture.h"
+
+/* PCAP related config. */
+#define ipconfigPCAP_CAPTURE_BUFFER_LENGTH              ( 10 * 1024 )
+#define ipconfigPCAP_CAPTURE_PACKET_SNAPLEN             ( 256 )
+#define PCAP_GET_TIME_MS()                              HAL_GetTick()
+
+#include "pcap_capture.h"
 
 #ifdef __cplusplus
 } /* extern "C" */

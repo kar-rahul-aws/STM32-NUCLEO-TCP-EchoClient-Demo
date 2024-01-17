@@ -224,10 +224,6 @@ extern void vPrintStringToUart( const char *str );
 #define configPRINT_STRING( x )                 vPrintStringToUart( x )
 #define configLOGGING_MAX_MESSAGE_LENGTH        128
 
-/* Pcap capture configuration. */
-#define configPCAP_CAPTURE_BUFFER_LENGTH        ( 10 * 1024 )
-#define configPCAP_CAPTURE_PACKET_SNAPLEN       ( 256 )
-
 /* CLI related configurations. */
 #define configCLI_SERVER_PORT                   1234
 #define configMAX_COMMAND_INPUT_SIZE            128

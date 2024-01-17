@@ -295,12 +295,26 @@ extern void vRegisterPcapCommand( void );
 extern void vRegisterNetStatCommand( void );
 extern void vRegisterTopCommand( void );
 extern void vRegisterTraceCommand( void );
+extern void vRegisterFirewallCommands( void );
 
     vRegisterPingCommand();
     vRegisterPcapCommand();
     vRegisterNetStatCommand();
     vRegisterTopCommand();
     vRegisterTraceCommand();
+    
+    /* Add the following Firewall Commands 
+    
+    firewall-add <rule>
+    Example: send firewall-add 192.168.2.124 * * * 17 0
+    
+    firewall-list
+    Example: send firewall-list
+
+    firewall-remove <Rule ID>
+    Example: firewall-remove 1
+    */
+    vRegisterFirewallCommands();
 }
 /*-----------------------------------------------------------*/
 

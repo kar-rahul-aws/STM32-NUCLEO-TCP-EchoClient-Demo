@@ -59,11 +59,11 @@ static portBASE_TYPE prvExceptionCommandInterpreter( char *pcWriteBuffer, size_t
 
             if( xCoredumpExist == pdTRUE )
             {
-                snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "TRUE" );
+                snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "Coredump exists." );
             }
             else
             {
-                snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "FALSE" );
+                snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "No coredump exists!" );
             }
         }
         else

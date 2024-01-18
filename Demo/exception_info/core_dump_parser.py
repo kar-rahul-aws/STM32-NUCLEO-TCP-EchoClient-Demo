@@ -1,7 +1,7 @@
 import sys
 import datetime
 
-class CoreDumpParser:
+class core_dump_parser:
     def __init( self ):
         # Exception info
         self.uxFileExistMagic = 0
@@ -64,7 +64,7 @@ class CoreDumpParser:
         self.ulRegMsp = 0
         self.ulRegPsp = 0
 
-    def parseCoreDump( self, FileName ):
+    def parse_core_dump( self, FileName, output_file ):
         self.timestamp = int(datetime.datetime.timestamp( datetime.datetime.now() ))
 
         with open( FileName, 'rb') as reader:
@@ -143,20 +143,27 @@ class CoreDumpParser:
             reader.seek( self.uxTotalLength - 4 )
             self.uxFileEndMagic = int.from_bytes(reader.read(4), byteorder='little')
 
-            print( hex( self.bss_address ) )
-            print( hex( self.bss_length ) )
-            print( hex( self.bss_offset ) )
+            # print( hex( self.bss_address ) )
+            # print( hex( self.bss_length ) )
+            # print( hex( self.bss_offset ) )
 
-            print( hex( self.data_address ) )
-            print( hex( self.data_length ) )
-            print( hex( self.data_offset ) )
+            # print( hex( self.data_address ) )
+            # print( hex( self.data_length ) )
+            # print( hex( self.data_offset ) )
 
-            print( hex( self.uxFileExistMagic ) )
+            # print( hex( self.uxFileExistMagic ) )
 
-        self.printGdbTxtFormat()
+        return self.dump_gdb_txt_format(output_file)
 
-    def printGdbTxtFormat( self ):
-        fp = open( "GeneratedGdb_" + str( self.timestamp ) + ".txt" , "w")
+    def dump_gdb_txt_format( self, output_file ):
+        if output_file == None or output_file == "":
+            coredump_parsed_file_name = str(hex(random.getrandbits(64)))
+            coredump_parsed_file_name = coredump_parsed_file_name[2:]
+            coredump_parsed_file_name += ".dump"
+            fileName = coredump_parsed_file_name
+        else:
+            fileName = output_file
+        fp = open( fileName , "w")
 
         currentAddress = self.data_address
         iterateTime = 0
@@ -267,7 +274,9 @@ class CoreDumpParser:
         print("s30            0                   (raw 0x00000000)", file=fp)
         print("s31            0                   (raw 0x00000000)", file=fp)
 
-    def showResult( self ):
+        return fileName
+
+    def show_result( self ):
         # Exception information
         if self.uxFileExistMagic == 0xaabbaabb:
             print( "Match magic pattern." )
@@ -358,6 +367,6 @@ class CoreDumpParser:
         '''
 
 if __name__ == '__main__':
-    coreDumpParser = CoreDumpParser()
-    coreDumpParser.parseCoreDump( sys.argv[1] )
-    coreDumpParser.showResult()
+    coreDumpParser = core_dump_parser()
+    coreDumpParser.parse_core_dump( sys.argv[1] )
+    coreDumpParser.show_result()

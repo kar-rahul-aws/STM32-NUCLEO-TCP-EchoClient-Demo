@@ -67,11 +67,11 @@ static portBASE_TYPE prvFirewallAddRuleCommandInterpreter( char *pcWriteBuffer, 
 
     if(xRet == pdFALSE)
     {
-        snprintf(pcWriteBuffer, xWriteBufferLen, "Incorrect command\r\n");
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Incorrect command!\r\n");
     }
     else
     {
-        snprintf(pcWriteBuffer, xWriteBufferLen, "Firewall rule added\r\n");
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Firewall rule added.\r\n");
     }
     return xReturn;
 }
@@ -89,7 +89,7 @@ static portBASE_TYPE prvFirewallListCommandInterpreter( char *pcWriteBuffer, siz
 
     if(xRet == pdFALSE)
     {
-        snprintf(pcWriteBuffer, xWriteBufferLen, "Internal error command (low buffer size)\r\n");
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Internal error ( low buffer size )!\r\n");
     }
 
     return pdFALSE;
@@ -111,11 +111,11 @@ static portBASE_TYPE prvFirewallRemoveRuleCommandInterpreter( char *pcWriteBuffe
 
     if(xRet == pdFALSE)
     {
-        snprintf(pcWriteBuffer, xWriteBufferLen, "Incorrect command\r\n");
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Incorrect command!\r\n");
     }
     else
     {
-        snprintf(pcWriteBuffer, xWriteBufferLen, "Firewall rule ID:%lu removed\r\n", (uint32_t) xRuleID);
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Firewall rule ID:%lu removed.\r\n", (uint32_t) xRuleID);
     }
     return xReturn;
 }

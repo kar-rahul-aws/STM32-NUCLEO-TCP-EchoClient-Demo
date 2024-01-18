@@ -47,6 +47,11 @@ static portBASE_TYPE prvExceptionCommandInterpreter( char *pcWriteBuffer, size_t
                 snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "No coredump exists!" );
             }
         }
+        else if( strncmp( pcCommandParameter, "remove", xCommandParameterLength ) == 0 )
+        {
+            ExpInfo_CleanInfo();
+            snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
+        }
         /* A command parameter for the demo purpose only to force an assert. */
         else if( strncmp( pcCommandParameter, "trigger", xCommandParameterLength ) == 0 )
         {
@@ -88,9 +93,9 @@ static portBASE_TYPE prvExceptionCommandInterpreter( char *pcWriteBuffer, size_t
 static const CLI_Command_Definition_t xExceptionCommand =
 {
     ( const char * const ) "coredump", /* The command string to type. */
-    ( const char * const ) "coredump: Checks or retrieves a coredump according to the parameter - check/get.\r\n",
+    ( const char * const ) "coredump: Checks, retrieves or removes a coredump according to the parameter - check/get/remove.\r\n",
     prvExceptionCommandInterpreter, /* The interpreter function for the command. */
-    1 /* One parameter - check or get. */
+    1 /* One parameter - check, get or remove. */
 };
 
 /*-----------------------------------------------------------*/

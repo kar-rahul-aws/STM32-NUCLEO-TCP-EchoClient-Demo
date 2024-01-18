@@ -687,13 +687,8 @@ void vAssertCalled( const char * pcFile,
 {
     taskDISABLE_INTERRUPTS();
 
-    configPRINTF( ( "vAssertCalled( %s, %u ).\r\n", pcFile, ulLine ) );
-    configPRINTF( ( "ExpInfo store information.\r\n" ) );
-
     ExpInfo_CleanInfo();
     ExpInfo_StoreInfo();
-
-    configPRINTF( ( "Reboot the device.\r\n" ) );
 
     NVIC_SystemReset();
 }

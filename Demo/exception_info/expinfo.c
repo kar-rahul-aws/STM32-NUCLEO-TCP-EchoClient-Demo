@@ -13,6 +13,91 @@
 
 /*-----------------------------------------------------------*/
 
+#define READ_CORE_REGISTERS( regs )                             \
+{                                                               \
+    register uint32_t regVal;                                   \
+    register int regR0 asm("r0");                               \
+    register int regR1 asm("r1");                               \
+    register int regR2 asm("r2");                               \
+    register int regR3 asm("r3");                               \
+    register int regR4 asm("r4");                               \
+    register int regR5 asm("r5");                               \
+    register int regR6 asm("r6");                               \
+    register int regR7 asm("r7");                               \
+    register int regR8 asm("r8");                               \
+    register int regR9 asm("r9");                               \
+    register int regR10 asm("r10");                             \
+    register int regR11 asm("r11");                             \
+    register int regR12 asm("r12");                             \
+    register int regSp asm("sp");                               \
+    register int regLr asm("lr");                               \
+    register int regD0 asm("d0");                               \
+    register int regD1 asm("d1");                               \
+    register int regD2 asm("d2");                               \
+    register int regD3 asm("d3");                               \
+    register int regD4 asm("d4");                               \
+    register int regD5 asm("d5");                               \
+    register int regD6 asm("d6");                               \
+    register int regD7 asm("d7");                               \
+    register int regD8 asm("d8");                               \
+    register int regD9 asm("d9");                               \
+    register int regD10 asm("d10");                             \
+    register int regD11 asm("d11");                             \
+    register int regD12 asm("d12");                             \
+    register int regD13 asm("d13");                             \
+    register int regD14 asm("d14");                             \
+    register int regD15 asm("d15");                             \
+    regs.ulRegR0 = regR0;                                       \
+    regs.ulRegR1 = regR1;                                       \
+    regs.ulRegR2 = regR2;                                       \
+    regs.ulRegR3 = regR3;                                       \
+    regs.ulRegR4 = regR4;                                       \
+    regs.ulRegR5 = regR5;                                       \
+    regs.ulRegR6 = regR6;                                       \
+    regs.ulRegR7 = regR7;                                       \
+    regs.ulRegR8 = regR8;                                       \
+    regs.ulRegR9 = regR9;                                       \
+    regs.ulRegR10 = regR10;                                     \
+    regs.ulRegR11 = regR11;                                     \
+    regs.ulRegR12 = regR12;                                     \
+    regs.ulRegSp = regSp;                                       \
+    regs.ulRegLr = regLr;                                       \
+    regs.ulRegD0 = regD0;                                       \
+    regs.ulRegD1 = regD1;                                       \
+    regs.ulRegD2 = regD2;                                       \
+    regs.ulRegD3 = regD3;                                       \
+    regs.ulRegD4 = regD4;                                       \
+    regs.ulRegD5 = regD5;                                       \
+    regs.ulRegD6 = regD6;                                       \
+    regs.ulRegD7 = regD7;                                       \
+    regs.ulRegD8 = regD8;                                       \
+    regs.ulRegD9 = regD9;                                       \
+    regs.ulRegD10 = regD10;                                     \
+    regs.ulRegD11 = regD11;                                     \
+    regs.ulRegD12 = regD12;                                     \
+    regs.ulRegD13 = regD13;                                     \
+    regs.ulRegD14 = regD14;                                     \
+    regs.ulRegD15 = regD15;                                     \
+    __asm volatile( "mov %0, pc" : "=r" ( regVal ) );           \
+    regs.ulRegPc = regVal;                                      \
+    __asm volatile( "mrs %0, xpsr" : "=r" ( regVal ) );         \
+    regs.ulRegXpsr = regVal;                                    \
+    __asm volatile( "mrs %0, primask" : "=r" ( regVal ) );      \
+    regs.ulRegPrimask = regVal;                                 \
+    __asm volatile( "mrs %0, basepri" : "=r" ( regVal ) );      \
+    regs.ulRegBasepri = regVal;                                 \
+    __asm volatile( "mrs %0, faultmask" : "=r" ( regVal ) );    \
+    regs.ulRegFaultmask = regVal;                               \
+    __asm volatile( "mrs %0, control" : "=r" ( regVal ) );      \
+    regs.ulRegControl = regVal;                                 \
+    __asm volatile( "mrs %0, msp" : "=r" ( regVal ) );          \
+    regs.ulRegMsp = regVal;                                     \
+    __asm volatile( "mrs %0, psp" : "=r" ( regVal ) );          \
+    regs.ulRegPsp = regVal;                                     \
+}
+
+/*-----------------------------------------------------------*/
+
 /* The exception information is organized in the following blocks:
  *
  * +--------+----------------+----------+---------+------------+
@@ -109,89 +194,6 @@ static const uint32_t endMarker[ 8 ] = { FLASH_USER_FILE_EXIST_MAGIC,
 
 /*-----------------------------------------------------------*/
 
-static void ReadRegisters( CoreRegisters_t * pRegs )
-{
-    register uint32_t regVal;
-
-    register int regR0 asm("r0");
-    register int regR1 asm("r1");
-    register int regR2 asm("r2");
-    register int regR3 asm("r3");
-    register int regR4 asm("r4");
-    register int regR5 asm("r5");
-    register int regR6 asm("r6");
-    register int regR7 asm("r7");
-    register int regR8 asm("r8");
-    register int regR9 asm("r9");
-    register int regR10 asm("r10");
-    register int regR11 asm("r11");
-    register int regR12 asm("r12");
-    register int regSp asm("sp");
-    register int regLr asm("lr");
-    register int regD0 asm("d0");
-    register int regD1 asm("d1");
-    register int regD2 asm("d2");
-    register int regD3 asm("d3");
-    register int regD4 asm("d4");
-    register int regD5 asm("d5");
-    register int regD6 asm("d6");
-    register int regD7 asm("d7");
-    register int regD8 asm("d8");
-    register int regD9 asm("d9");
-    register int regD10 asm("d10");
-    register int regD11 asm("d11");
-    register int regD12 asm("d12");
-    register int regD13 asm("d13");
-    register int regD14 asm("d14");
-    register int regD15 asm("d15");
-
-    pRegs->ulRegR0 = regR0;
-    pRegs->ulRegR1 = regR1;
-    pRegs->ulRegR2 = regR2;
-    pRegs->ulRegR3 = regR3;
-    pRegs->ulRegR4 = regR4;
-    pRegs->ulRegR5 = regR5;
-    pRegs->ulRegR6 = regR6;
-    pRegs->ulRegR7 = regR7;
-    pRegs->ulRegR8 = regR8;
-    pRegs->ulRegR9 = regR9;
-    pRegs->ulRegR10 = regR10;
-    pRegs->ulRegR11 = regR11;
-    pRegs->ulRegR12 = regR12;
-    pRegs->ulRegSp = regSp;
-    pRegs->ulRegLr = regLr;
-    pRegs->ulRegD0 = regD0;
-    pRegs->ulRegD1 = regD1;
-    pRegs->ulRegD2 = regD2;
-    pRegs->ulRegD3 = regD3;
-    pRegs->ulRegD4 = regD4;
-    pRegs->ulRegD5 = regD5;
-    pRegs->ulRegD6 = regD6;
-    pRegs->ulRegD7 = regD7;
-    pRegs->ulRegD8 = regD8;
-    pRegs->ulRegD9 = regD9;
-    pRegs->ulRegD10 = regD10;
-    pRegs->ulRegD11 = regD11;
-    pRegs->ulRegD12 = regD12;
-    pRegs->ulRegD13 = regD13;
-    pRegs->ulRegD14 = regD14;
-    pRegs->ulRegD15 = regD15;
-
-    __asm volatile( "mov %0, pc" : "=r" ( regVal ) );
-    pRegs->ulRegPc = regVal;
-
-    pRegs->ulRegXpsr = __get_xPSR();
-    pRegs->ulRegFpscr = __get_FPSCR();
-    pRegs->ulRegPrimask = __get_PRIMASK();
-    pRegs->ulRegBasepri = __get_BASEPRI();
-    pRegs->ulRegFaultmask = __get_FAULTMASK();
-    pRegs->ulRegControl = __get_CONTROL();
-    pRegs->ulRegMsp = __get_MSP();
-    pRegs->ulRegPsp = __get_PSP();
-}
-
-/*-----------------------------------------------------------*/
-
 BaseType_t ExpInfo_StoreInfo( void )
 {
     uint32_t uxNextFlashAddress;
@@ -203,7 +205,7 @@ BaseType_t ExpInfo_StoreInfo( void )
     extern unsigned char _ebss;
 
     /* Store the current registers in in gCoreRegisters. */
-    ReadRegisters( &( gCoreRegisters ) );
+    READ_CORE_REGISTERS( gCoreRegisters );
 
     /* Store the header information. */
     gExceptionHeader.uxStartMarker = FLASH_USER_FILE_EXIST_MAGIC;

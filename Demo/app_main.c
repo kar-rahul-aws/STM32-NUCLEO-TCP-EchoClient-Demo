@@ -688,9 +688,28 @@ void vAssertCalled( const char * pcFile,
     taskDISABLE_INTERRUPTS();
 
     ExpInfo_CleanInfo();
-    ExpInfo_StoreInfo();
+    ExpInfo_StoreAssertInfo();
 
     NVIC_SystemReset();
+}
+
+/*-----------------------------------------------------------*/
+
+void HardFault_Handler( void ) __attribute__( ( naked ) );
+
+void HardFault_Handler(void)
+{
+    __asm volatile
+    (
+        " mrs r0, psp                                           \n"
+        " isb                                                   \n"
+        " stmdb r0!, {r4-r11}                                   \n"
+        " ldr r1, handler2_address_const                        \n"
+        " bx r1                                                 \n"
+        "                                                       \n"
+        " .align 4                                              \n"
+        " handler2_address_const: .word ExpInfo_StoreFaultInfo  \n"
+    );
 }
 
 /*-----------------------------------------------------------*/

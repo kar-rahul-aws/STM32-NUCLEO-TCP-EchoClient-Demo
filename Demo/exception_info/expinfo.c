@@ -6,6 +6,8 @@
 #include "flash_write.h"
 #include "expinfo.h"
 
+/* ST HAL includes. */
+#include "stm32h7xx_hal.h"
 /*-----------------------------------------------------------*/
 
 #define FLASH_USER_FILE_EXIST_MAGIC     ( 0xAABBAABB )
@@ -194,7 +196,7 @@ static const uint32_t endMarker[ 8 ] = { FLASH_USER_FILE_EXIST_MAGIC,
 
 /*-----------------------------------------------------------*/
 
-BaseType_t ExpInfo_StoreInfo( void )
+BaseType_t ExpInfo_StoreAssertInfo( void )
 {
     uint32_t uxNextFlashAddress;
     uint32_t result;
@@ -310,6 +312,7 @@ BaseType_t ExpInfo_InfoExist( void )
 
     return xReturn;
 }
+
 /*-----------------------------------------------------------*/
 
 BaseType_t ExpInfo_GetInfo( const uint8_t ** pxExceptionInfo,
@@ -335,4 +338,114 @@ BaseType_t ExpInfo_GetInfo( const uint8_t ** pxExceptionInfo,
 
     return xReturn;
 }
+
+/*-----------------------------------------------------------*/
+
+void ExpInfo_StoreFaultInfo( uint32_t *pulTaskStack )
+{
+    uint32_t uxNextFlashAddress;
+    uint32_t result;
+
+    extern unsigned char _sdata;
+    extern unsigned char _edata;
+    extern unsigned char _sbss;
+    extern unsigned char _ebss;
+
+    /* Store the current registers in in gCoreRegisters. */
+    READ_CORE_REGISTERS( gCoreRegisters );
+    gCoreRegisters.ulRegR4 = pulTaskStack[ 0 ];
+    gCoreRegisters.ulRegR5 = pulTaskStack[ 1 ];
+    gCoreRegisters.ulRegR6 = pulTaskStack[ 2 ];
+    gCoreRegisters.ulRegR7 = pulTaskStack[ 3 ];
+    gCoreRegisters.ulRegR8 = pulTaskStack[ 4 ];
+    gCoreRegisters.ulRegR9 = pulTaskStack[ 5 ];
+    gCoreRegisters.ulRegR10 = pulTaskStack[ 6 ];
+    gCoreRegisters.ulRegR11 = pulTaskStack[ 7 ];
+
+    gCoreRegisters.ulRegR0 = pulTaskStack[ 8 ];
+    gCoreRegisters.ulRegR1 = pulTaskStack[ 9 ];
+    gCoreRegisters.ulRegR2 = pulTaskStack[ 10 ];
+    gCoreRegisters.ulRegR3 = pulTaskStack[ 11 ];
+
+    gCoreRegisters.ulRegR12 = pulTaskStack[ 12 ];
+    gCoreRegisters.ulRegLr = pulTaskStack[ 13 ];
+    gCoreRegisters.ulRegPc = pulTaskStack[ 14 ];
+    gCoreRegisters.ulRegXpsr = pulTaskStack[ 15 ];
+    /* Assuming standard (not extended) stack frame. */
+    gCoreRegisters.ulRegSp = ( ( uint32_t ) pulTaskStack ) + 64;
+
+    /* Store the header information. */
+    gExceptionHeader.uxStartMarker = FLASH_USER_FILE_EXIST_MAGIC;
+    gExceptionHeader.uxTotalLength = ROUND_UP_32( sizeof( ExceptionHeader_t ) ) +
+                                     ROUND_UP_32( sizeof( CoreRegisters_t ) ) +
+                                     ROUND_UP_32( ( uint32_t )( &_edata - &_sdata ) ) +
+                                     ROUND_UP_32( ( uint32_t )( &_ebss - &_sbss ) ) +
+                                     ROUND_UP_32( sizeof( endMarker ) );
+
+    gExceptionHeader.uxRegDumpOffset = ROUND_UP_32( sizeof( ExceptionHeader_t ) );
+    gExceptionHeader.uxRegDumpLength = sizeof( CoreRegisters_t );
+
+    gExceptionHeader.uxMemoryRegionNum = EXCEPTION_INFO_MEMORY_REGIONS;
+
+    /* .data section. */
+    gExceptionHeader.xMemoryRegions[ 0 ].uxOffset = ROUND_UP_32( sizeof( ExceptionHeader_t ) ) +
+                                                  ROUND_UP_32( sizeof( CoreRegisters_t ) );
+    gExceptionHeader.xMemoryRegions[ 0 ].uxLength = ( uint32_t )( &_edata - &_sdata );
+    gExceptionHeader.xMemoryRegions[ 0 ].uxEndAddress = ( uint32_t )( &_sdata );
+
+    /* .bss section. */
+    gExceptionHeader.xMemoryRegions[ 1 ].uxOffset = ROUND_UP_32( sizeof( ExceptionHeader_t ) ) +
+                                                  ROUND_UP_32( sizeof( CoreRegisters_t ) ) +
+                                                  ROUND_UP_32( ( uint32_t )( &_edata - &_sdata ) );
+    gExceptionHeader.xMemoryRegions[ 1 ].uxLength = ( uint32_t )( &_ebss - &_sbss );
+    gExceptionHeader.xMemoryRegions[ 1 ].uxEndAddress = ( uint32_t )( &_sbss );
+
+    FLASH_Erase();
+
+    /* Store exception header. */
+    result = FLASH_Write( EXCEPTION_INFO_START_ADDR,
+                          ( uint32_t * )( &( gExceptionHeader ) ),
+                          BYTES_TO_WORDS( sizeof( gExceptionHeader ) ),
+                          &( uxNextFlashAddress ) );
+
+    /* Store the registers. */
+    if( result == FLASH_OPERATION_OK )
+    {
+        result = FLASH_Write( uxNextFlashAddress,
+                              ( uint32_t * )( &( gCoreRegisters ) ),
+                              BYTES_TO_WORDS( sizeof( CoreRegisters_t ) ),
+                              &( uxNextFlashAddress ) );
+    }
+
+    /* Store the data section memory. */
+    if( result == FLASH_OPERATION_OK )
+    {
+        result = FLASH_Write( uxNextFlashAddress,
+                              ( uint32_t * )( &_sdata ),
+                              BYTES_TO_WORDS( ( uint32_t )( &_edata - &_sdata ) ),
+                              &( uxNextFlashAddress ) );
+    }
+
+    /* Store the bss section memory. */
+    if( result == FLASH_OPERATION_OK )
+    {
+        result = FLASH_Write( uxNextFlashAddress,
+                              ( uint32_t * )( &_sbss ),
+                              BYTES_TO_WORDS( ( uint32_t )( &_ebss - &_sbss ) ),
+                              &( uxNextFlashAddress ) );
+    }
+
+    /* Store the end marker. */
+    if( result == FLASH_OPERATION_OK )
+    {
+        result = FLASH_Write( uxNextFlashAddress,
+                              ( uint32_t * )endMarker,
+                              BYTES_TO_WORDS( sizeof( endMarker ) ),
+                              &( uxNextFlashAddress ) );
+    }
+
+    /* Reboot the device. */
+    NVIC_SystemReset();
+}
+
 /*-----------------------------------------------------------*/

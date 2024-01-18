@@ -53,9 +53,15 @@ static portBASE_TYPE prvExceptionCommandInterpreter( char *pcWriteBuffer, size_t
             snprintf( ( char * ) pcWriteBuffer, xWriteBufferLen, "OK" );
         }
         /* A command parameter for the demo purpose only to force an assert. */
-        else if( strncmp( pcCommandParameter, "trigger", xCommandParameterLength ) == 0 )
+        else if( strncmp( pcCommandParameter, "trigger-assert", xCommandParameterLength ) == 0 )
         {
             configASSERT( pdFALSE );
+        }
+        /* A command parameter for the demo purpose only to force a fault. */
+        else if( strncmp( pcCommandParameter, "trigger-fault", xCommandParameterLength ) == 0 )
+        {
+            /* Trigger hard fault. */
+            *( ( uint32_t * ) 0xDEADBEEF ) = 42;
         }
         else if( strncmp( pcCommandParameter, "check", xCommandParameterLength ) == 0 )
         {

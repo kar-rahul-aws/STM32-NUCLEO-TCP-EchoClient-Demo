@@ -7,11 +7,19 @@
 /*-----------------------------------------------------------*/
 
 /**
- * @brief Store the current exception information.
+ * @brief Store the current Assert information.
  *
  * @retval pdTRUE if the store was successful, pdFALSE otherwise.
  */
-BaseType_t ExpInfo_StoreInfo( void );
+BaseType_t ExpInfo_StoreAssertInfo( void );
+
+/**
+ * @brief Store the current Fault information.
+ *
+ * @param pulTaskStack Stack pointer of the task that was executing at the time
+ * of exception.
+ */
+void ExpInfo_StoreFaultInfo( uint32_t *pulTaskStack );
 
 /**
  * @brief Get the stored exception information.
